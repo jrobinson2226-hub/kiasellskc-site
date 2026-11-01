@@ -12,7 +12,7 @@
  *   5. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Paste the /exec URL into config.js.
  */
 
-var APP_URL = 'https://jrobinson2226-hub.github.io/kia-crm/';
+var APP_URL = 'https://crm.kiasellskc.com/';
 var TZ = 'America/Chicago';
 var PEOPLE = [
   { uid: 'kia', name: 'Kia Robinson', email: 'kiasellskc@gmail.com', role: 'owner' },

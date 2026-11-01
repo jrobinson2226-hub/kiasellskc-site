@@ -1,6 +1,6 @@
 # Kia's CRM: one-time setup
 
-Kia's CRM is a website with its own login. Lofty stays the main record. Every call, text, email, note and follow-up Kia logs in the app is saved straight into Lofty. Emails go out from Kia's Gmail, and follow-ups and showings can go on her Google Calendar.
+Kia's CRM is a website at crm.kiasellskc.com with its own login. Lofty stays the main record. Every call, text, email, note and follow-up Kia logs in the app is saved straight into Lofty. Emails go out from Kia's Gmail, and follow-ups and showings can go on her Google Calendar.
 
 There are two parts:
 - **The website:** free hosting on GitHub Pages.
@@ -10,7 +10,12 @@ There are two parts:
 1. On github.com, signed in as jrobinson2226-hub: **New repository**. Name it `kia-crm`, choose **Public**, and click **Create**.
 2. Tell Claude it's created, and Claude uploads the app's files.
 3. In the repo, go to **Settings > Pages**. Under Source, choose **Deploy from a branch**, then **main** and **/ (root)**, and click **Save**.
-4. After a minute or two, the app is live at `https://jrobinson2226-hub.github.io/kia-crm/`.
+4. Point Kia's domain at it. Where kiasellskc.com is registered (GoDaddy, for example), open **DNS** and add a record:
+   - Type: **CNAME**
+   - Name/Host: **crm**
+   - Value/Points to: **jrobinson2226-hub.github.io**
+5. Back in **Settings > Pages**, type `crm.kiasellskc.com` under **Custom domain** and click **Save**. Once the check turns green (DNS can take up to an hour), tick **Enforce HTTPS**.
+6. The app is live at `https://crm.kiasellskc.com`.
 
 ## 2. Server (in Kia's Google account)
 1. Sign in to Google as **kiasellskc@gmail.com** and go to **script.google.com**. Click **New project**, then rename it "Kia's CRM server."
