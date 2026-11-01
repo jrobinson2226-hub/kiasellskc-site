@@ -57,3 +57,4 @@ Do this last. The old GoDaddy page stays up until you switch.
 - **Email** sends from kiasellskc@gmail.com (about 100 a day on a regular Gmail account) and logs each one in Lofty.
 - **Server changes:** paste the new code, then use **Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy**, so the web address stays the same.
 - Search engines are told to skip /crm. The landing page is open to search.
+- **Listings** on the homepage come from Kia's Lofty account (Heartland MLS) and refresh about once an hour. Active listings show full details. Sold homes show only the photo, neighborhood and sold date, never the price. New listings and sales appear on their own.
