@@ -1,0 +1,12 @@
+# Kia Robinson, Kansas City Realtor
+
+> Kia Robinson is a real estate agent with LPT Realty, licensed in Kansas and Missouri, helping home buyers and sellers across the Kansas City metro: Olathe, Overland Park, Lenexa, Shawnee and the rest of Johnson County, KS, plus Lee's Summit, Liberty, the Northland and Kansas City, MO.
+
+- Phone: (816) 853-3676
+- Email: kiasellskc@gmail.com
+- Brokerage: LPT Realty
+- Facebook: https://www.facebook.com/kiarobinsonrealestate
+
+## Pages
+- [Home](https://kiasellskc.com/): About Kia, how she helps buyers and sellers, her current and recently sold listings, frequently asked questions and a contact form.
+- [Program & Property Finder](https://kiasellskc.com/programs/): Check a Kansas City address for USDA $0 down eligibility, Missouri (MHDC) down payment assistance, Chase Community Lending neighborhoods and other Kansas and Missouri home loan programs. Built with Kia's lender partner Jason Robinson, Sr. Loan Officer at Prosperity Home Mortgage (NMLS# 1008330).

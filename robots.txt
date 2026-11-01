@@ -1,2 +1,6 @@
 User-agent: *
 Disallow: /crm/
+Disallow: /setup/
+Disallow: /tools/
+
+Sitemap: https://kiasellskc.com/sitemap.xml

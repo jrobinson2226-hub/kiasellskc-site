@@ -68,6 +68,7 @@ function handle(req) {
   if (a === 'inviteInfo') return inviteInfo(req.code);
   if (a === 'contact') return websiteContact(req);
   if (a === 'listings') return publicListings(!!req.fresh);
+  if (a === 'finderLead') return finderLead(req);
 
   var me = sessionUser(req.token);
   if (!me) return { ok: false, error: 'not_signed_in' };
@@ -477,6 +478,92 @@ function publicListings(fresh) {
   };
   try { cache.put('listings:v1', JSON.stringify(out), LISTINGS_CACHE_SECONDS); } catch (e) {}
   return out;
+}
+
+/* ============================ program finder leads ============================ */
+
+var JASON_EMAIL = 'jason.robinson@phmloans.com';
+
+/** Public: the Program & Property Finder on kiasellskc.com/programs. Lead goes to Kia's Lofty; Kia and Jason both get the email. */
+function finderLead(r) {
+  var f = r.form || {};
+  if (String(f.website || '').trim()) return { ok: true };
+  var cache = CacheService.getScriptCache();
+  var hour = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHH');
+  var count = Number(cache.get('contact:' + hour) || 0);
+  if (count >= 30) return { ok: false, error: 'busy' };
+  cache.put('contact:' + hour, String(count + 1), 3700);
+
+  var name = String(f.name || '').replace(/\s+/g, ' ').trim();
+  var email = String(f.email || '').trim();
+  var phone = String(f.phone || '').replace(/[^\d+]/g, '');
+  if (!name) return { ok: false, error: 'need_name' };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'bad_email' };
+  if (phone && phone.replace(/\D/g, '').length < 10) return { ok: false, error: 'bad_phone' };
+  if (!email && !phone) return { ok: false, error: 'need_contact' };
+  var dupKey = 'finderdup:' + (email || phone).toLowerCase();
+  if (cache.get(dupKey)) return { ok: true };
+  cache.put(dupKey, '1', 600);
+
+  var res0 = f.result || {};
+  var list = function (x) { return (Array.isArray(x) ? x : []).map(function (v) { return clip(String(v), 60); }).slice(0, 12); };
+  var result = res0.address ? {
+    address: clip(String(res0.address), 200), county: clip(String(res0.county || ''), 60), state: clip(String(res0.state || ''), 4),
+    who: res0.who === 'agent' ? 'agent' : 'buyer', size: Number(res0.size) || null, income: Number(res0.income) || null,
+    price: clip(String(res0.price || ''), 60), matches: list(res0.matches), available: list(res0.available), notMatch: list(res0.notMatch)
+  } : null;
+  var role = { buyer: 'Home buyer', seller: 'Seller or homeowner', agent: 'Real estate agent' }[f.role] || 'Home buyer';
+  var parts = name.split(' ');
+  var first = parts.shift(), last = parts.join(' ');
+  var consent = f.consent === true;
+  var body = {
+    firstName: first.slice(0, 30), lastName: last.slice(0, 30), leadTypes: [f.role === 'seller' ? 1 : f.role === 'agent' ? -1 : 2],
+    source: 'kiasellskc.com program finder', tags: [f.role === 'agent' ? 'Sphere' : 'Active Buyer', 'Website Lead', 'Program Finder'],
+    cannotCall: !consent, cannotText: !consent, cannotEmail: !consent
+  };
+  if (phone) body.phones = [phone.slice(0, 20)];
+  if (email) body.emails = [email];
+  if (result && result.address) {
+    var city = result.address.split(',')[1];
+    if (city) body.inquiry = { locations: [{ city: city.trim(), stateCode: result.state || '' }] };
+  }
+  var res = lofty('POST', '/v1.0/leads', body);
+  var leadId = res && res.leadId ? String(res.leadId) : null;
+
+  var msg = clip(String(f.message || '').trim(), 2000);
+  var lines = ['Program finder lead: ' + name, '', 'I am a: ' + role];
+  if (phone) lines.push('Phone: ' + fmtPhone(phone));
+  if (email) lines.push('Email: ' + email);
+  lines.push('OK to contact (Kia & Jason): ' + (consent ? 'Yes' : 'Not checked'));
+  if (result) {
+    lines.push('', 'Property checked: ' + result.address + (result.county ? ' (' + result.county + ')' : ''));
+    var hh = [];
+    if (result.size) hh.push(result.size + '-person household');
+    if (result.income) hh.push('$' + Math.round(result.income).toLocaleString() + ' income');
+    if (result.price) hh.push(result.price);
+    if (hh.length) lines.push('They entered: ' + hh.join(', '));
+    if (result.matches.length) lines.push('Looks like a fit: ' + result.matches.join(', '));
+    if (result.available.length) lines.push('Also available: ' + result.available.join(', '));
+    if (result.notMatch.length) lines.push('Not a match: ' + result.notMatch.join(', '));
+  } else {
+    lines.push('', 'No property checked yet.');
+  }
+  if (msg) lines.push('', 'Message:', msg);
+  var noteText = lines.slice(2).join('\n');
+  if (leadId) { try { lofty('POST', '/v1.0/notes', { leadId: Number(leadId), content: 'Program finder (kiasellskc.com/programs)\n' + noteText, isPin: true }); } catch (e) {} }
+  cache.remove('rows:n');
+
+  try {
+    var link = leadId ? APP_URL + '#lead=' + leadId : APP_URL;
+    var text = lines.join('\n') + '\n\nOpen in Kia\'s CRM: ' + link;
+    var html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">' + lines.map(escapeHtml).join('<br>') +
+      '<br><br><a href="' + link + '">Open in Kia\'s CRM</a></div>';
+    var subj = 'Program finder lead: ' + name + (result ? ' (' + result.address.split(',')[0] + ')' : '');
+    var opts = { htmlBody: html, name: 'kiasellskc.com', cc: JASON_EMAIL };
+    if (email) opts.replyTo = email;
+    GmailApp.sendEmail(PEOPLE[0].email, subj, text, opts);
+  } catch (e) { console.warn('notify: ' + e); }
+  return { ok: true };
 }
 
 /* ============================ website contact form ============================ */

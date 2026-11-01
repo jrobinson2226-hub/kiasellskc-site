@@ -1,0 +1,27 @@
+name: Refresh listings in page
+on:
+  schedule:
+    - cron: '17 11 * * *'   # daily, about 6:17 AM Central
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/render-listings.mjs', '.github/workflows/listings.yml']
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node tools/render-listings.mjs
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "listings-bot"
+            git config user.email "listings-bot@users.noreply.github.com"
+            git commit -am "Refresh listings in page"
+            git push
+          fi
