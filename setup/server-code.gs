@@ -12,7 +12,7 @@
  *   5. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Paste the /exec URL into config.js.
  */
 
-var APP_URL = 'https://crm.kiasellskc.com/';
+var APP_URL = 'https://kiasellskc.com/crm/';
 var TZ = 'America/Chicago';
 var PEOPLE = [
   { uid: 'kia', name: 'Kia Robinson', email: 'kiasellskc@gmail.com', role: 'owner' },
@@ -66,6 +66,7 @@ function handle(req) {
   if (a === 'login') return login(req.email, req.password);
   if (a === 'acceptInvite') return acceptInvite(req.code, req.password);
   if (a === 'inviteInfo') return inviteInfo(req.code);
+  if (a === 'contact') return websiteContact(req);
 
   var me = sessionUser(req.token);
   if (!me) return { ok: false, error: 'not_signed_in' };
@@ -425,6 +426,74 @@ function createLead(r) {
 }
 
 function patchRowLater(leadId) { try { patchRow(leadId); } catch (e) {} }
+
+/* ============================ website contact form ============================ */
+
+var INTEREST = { buy: 'Buying', sell: 'Selling', both: 'Buying and selling', exploring: 'Just exploring' };
+
+/** Public: the form on kiasellskc.com. No login. Creates a Lofty lead and emails Kia. */
+function websiteContact(r) {
+  var f = r.form || {};
+  if (String(f.website || '').trim()) return { ok: true }; // honeypot: bots fill the hidden field
+  var cache = CacheService.getScriptCache();
+  var hour = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHH');
+  var count = Number(cache.get('contact:' + hour) || 0);
+  if (count >= 30) return { ok: false, error: 'busy' };
+  cache.put('contact:' + hour, String(count + 1), 3700);
+
+  var name = String(f.name || '').replace(/\s+/g, ' ').trim();
+  var email = String(f.email || '').trim();
+  var phone = String(f.phone || '').replace(/[^\d+]/g, '');
+  if (!name) return { ok: false, error: 'need_name' };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'bad_email' };
+  if (phone && phone.replace(/\D/g, '').length < 10) return { ok: false, error: 'bad_phone' };
+  if (!email && !phone) return { ok: false, error: 'need_contact' };
+  var dupKey = 'contactdup:' + (email || phone).toLowerCase();
+  if (cache.get(dupKey)) return { ok: true };
+  cache.put(dupKey, '1', 600);
+
+  var parts = name.split(' ');
+  var first = parts.shift(), last = parts.join(' ');
+  var interest = INTEREST[f.interest] ? f.interest : 'exploring';
+  var types = interest === 'sell' ? [1] : interest === 'both' ? [2, 1] : [2];
+  var consent = f.consent === true;
+  var body = {
+    firstName: first.slice(0, 30), lastName: last.slice(0, 30), leadTypes: types,
+    source: 'kiasellskc.com', tags: ['Active Buyer', 'Website Lead'],
+    cannotCall: !consent, cannotText: !consent, cannotEmail: !consent
+  };
+  if (interest === 'sell' || interest === 'both') body.tags.push('Seller');
+  if (phone) body.phones = [phone.slice(0, 20)];
+  if (email) body.emails = [email];
+  var area = clip(String(f.area || '').trim(), 60);
+  if (area) body.inquiry = { locations: [{ city: area, stateCode: '' }] };
+  var res = lofty('POST', '/v1.0/leads', body);
+  var leadId = res && res.leadId ? String(res.leadId) : null;
+
+  var msg = clip(String(f.message || '').trim(), 2000);
+  var noteText = 'Website contact form (kiasellskc.com)\nInterested in: ' + INTEREST[interest] +
+    (area ? '\nArea: ' + area : '') + '\nOK to contact: ' + (consent ? 'Yes' : 'Not checked') + (msg ? '\n\n' + msg : '');
+  if (leadId) { try { lofty('POST', '/v1.0/notes', { leadId: Number(leadId), content: noteText, isPin: true }); } catch (e) {} }
+  cache.remove('rows:n');
+
+  try {
+    var link = leadId ? APP_URL + '#lead=' + leadId : APP_URL;
+    var lines = ['New website lead: ' + name, '', 'Interested in: ' + INTEREST[interest]];
+    if (phone) lines.push('Phone: ' + fmtPhone(phone));
+    if (email) lines.push('Email: ' + email);
+    if (area) lines.push('Area: ' + area);
+    lines.push('OK to contact: ' + (consent ? 'Yes' : 'Not checked'));
+    if (msg) lines.push('', 'Message:', msg);
+    lines.push('', 'Open in Kia\'s CRM: ' + link);
+    var text = lines.join('\n');
+    var html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">' +
+      lines.slice(0, -1).map(escapeHtml).join('<br>') + '<br><a href="' + link + '">Open in Kia\'s CRM</a></div>';
+    var opts = { htmlBody: html, name: 'kiasellskc.com' };
+    if (email) opts.replyTo = email;
+    GmailApp.sendEmail(PEOPLE[0].email, 'New website lead: ' + name, text, opts);
+  } catch (e) { console.warn('notify: ' + e); }
+  return { ok: true };
+}
 
 /* ==================================== logins ==================================== */
 

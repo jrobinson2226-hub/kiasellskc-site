@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#261511">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kia's CRM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Kia's CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Italiana&family=Questrial&display=swap">
+<style>
+/* Kia's CRM: brand tokens come from Kia's LPT signature (espresso ink, blush wash, rose-taupe). */
+:root{
+  --bg:#faf5f2; --panel:#ffffff; --ink:#261511; --muted:#6e5850; --line:#eadcd3; --soft:#f6ece6; --blush:#e7d1c2;
+  --rose:#c4a695; --taupe:#a7816d; --btn:#261511; --btn-ink:#f6ece6; --ok:#2f7a4f; --warn:#a46412; --bad:#a8332b; --field:#fffdfb;
+  --display:"Italiana","Didot","Bodoni 72",Georgia,serif; --body:"Questrial",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px; --gap:14px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#1a1312; --panel:#241b19; --ink:#f3e6de; --muted:#bfa89d; --line:#3a2d29; --soft:#2a1f1c; --blush:#3b2c27;
+  --rose:#b89989; --taupe:#c9a796; --btn:#e7d1c2; --btn-ink:#261511; --ok:#6cc792; --warn:#e2a64a; --bad:#ef8a80; --field:#1f1716; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+[hidden]{display:none!important}
+.app{min-height:100%;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:20;background:linear-gradient(120deg,var(--soft),var(--blush));padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:12px}
+.top img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none}
+.top .t{flex:1;min-width:0}
+.top h1{margin:0;font-family:var(--display);font-weight:400;font-size:26px;line-height:1}
+.top p{margin:3px 0 0;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.iconbtn{border:0;background:transparent;padding:8px;border-radius:999px;cursor:pointer;min-width:40px;min-height:40px}
+.iconbtn:focus-visible,.btn:focus-visible,.chip:focus-visible,.row:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--taupe);outline-offset:2px}
+main{flex:1;width:100%;max-width:880px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(96px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-content:start}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--panel);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.tabs a{flex:1;max-width:200px;text-align:center;text-decoration:none;padding:8px 4px;border-radius:10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tabs a b{display:block;font-size:20px;line-height:1.1;font-weight:400;letter-spacing:0;margin-bottom:2px}
+.tabs a[aria-current="page"]{color:var(--ink);background:var(--soft)}
+h2{margin:0;font-family:var(--body);font-weight:400;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.hello{font-family:var(--display);font-size:34px;line-height:1.05;margin:4px 0 0}
+.sub{margin:4px 0 0;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:10px;min-width:0}
+.list{display:grid;gap:0;grid-template-columns:minmax(0,1fr)}
+main > *,.card > *{min-width:0}
+.row{display:flex;gap:12px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer;text-decoration:none;background:transparent;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
+.row:last-child{border-bottom:0}
+.row .main{flex:1;min-width:0}
+.row .name{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .side{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.pill{display:inline-block;font-size:11px;letter-spacing:.06em;padding:2px 9px;border-radius:999px;background:var(--soft);border:1px solid var(--line);white-space:nowrap;color:var(--ink)}
+.pill.ab{background:var(--ink);color:var(--btn-ink);border-color:var(--ink)}
+.pill.due{background:transparent;color:var(--bad);border-color:currentColor}
+.pill.today{background:transparent;color:var(--warn);border-color:currentColor}
+.dot{width:36px;height:36px;border-radius:50%;background:var(--soft);display:grid;place-items:center;flex:none;font-size:14px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px;padding:6px 2px}
+.btn{border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);border-radius:999px;padding:11px 18px;cursor:pointer;font-size:13px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.small{padding:6px 12px;min-height:34px;font-size:11px}
+.btn:disabled{opacity:.5;cursor:default}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (min-width:640px){.actions{grid-template-columns:repeat(6,1fr)}}
+.act{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 4px;display:grid;justify-items:center;gap:2px;cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);min-height:64px}
+.act b{font-size:20px;font-weight:400;line-height:1.1}
+.act:disabled{opacity:.45;cursor:default}
+.search{display:flex;gap:8px;flex-wrap:wrap}
+.search input{flex:1 1 220px}
+input,select,textarea{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-width:0;width:100%;font-size:16px}
+textarea{min-height:110px;resize:vertical}
+label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));gap:10px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 13px;font-size:13px;white-space:nowrap;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--btn-ink);border-color:var(--ink)}
+.detail-head{display:grid;gap:6px}
+.detail-head .nm{font-family:var(--display);font-size:38px;line-height:1.05;margin:0;overflow-wrap:anywhere}
+.kv{display:grid;gap:6px;font-size:15px}
+.kv a{text-decoration:none;border-bottom:1px solid var(--line)}
+.tl{display:grid;gap:0}
+.tl .it{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.tl .it:last-child{border-bottom:0}
+.tl .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);padding-top:2px;min-width:52px}
+.tl .w{font-size:12px;color:var(--muted)}
+.tl .x{grid-column:2;white-space:pre-wrap;overflow-wrap:anywhere}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:0;background:transparent;padding:6px 0}
+/* bottom sheet */
+.scrim{position:fixed;inset:0;background:rgba(20,10,8,.42);z-index:40}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--panel);border-radius:18px 18px 0 0;max-height:92vh;overflow:auto;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:12px;box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+@media (min-width:700px){.sheet{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);width:560px;border-radius:18px;max-height:88vh}}
+.sheet h3{margin:0;font-family:var(--display);font-weight:400;font-size:30px;line-height:1.1}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:9px 14px;cursor:pointer;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--btn-ink);border-color:var(--ink)}
+.row2{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.check{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:15px}
+.check input{width:20px;height:20px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--btn-ink);padding:10px 16px;border-radius:999px;font-size:14px;max-width:calc(100% - 32px);text-align:center}
+.toast.bad{background:var(--bad);color:#fff}
+.err{color:var(--bad);font-size:14px}
+.auth{max-width:420px;margin:8vh auto 0;display:grid;gap:14px}
+.auth .hello{text-align:center}
+.loading{color:var(--muted);font-size:14px;padding:8px 2px}
+.more{justify-self:center}
+.count{font-size:13px;color:var(--muted)}
+.tpls{display:flex;gap:6px;flex-wrap:wrap}
+.tpls button{border:1px dashed var(--line);background:transparent;border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer;text-align:left}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
+@media (prefers-reduced-motion:no-preference) and (min-width:700px){.sheet{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <img alt="" src="kia.jpg">
+    <div class="t"><h1>Kia Robinson</h1><p>Real Estate Agent · LPT Realty</p></div>
+    <button class="iconbtn" id="refreshBtn" title="Refresh" aria-label="Refresh" hidden>&#8635;</button>
+    <button class="iconbtn" id="menuBtn" title="Account" aria-label="Account" hidden>&#9776;</button>
+  </header>
+  <main id="view" aria-live="polite"></main>
+  <nav class="tabs" id="tabs" hidden>
+    <a href="#today" data-tab="today"><b>&#9728;</b>Today</a>
+    <a href="#contacts" data-tab="contacts"><b>&#9776;</b>Contacts</a>
+    <a href="#add" data-tab="add"><b>+</b>Add lead</a>
+  </nav>
+</div>
+
+<script src="../config.js"></script>
+<script>
+(function () {
+  'use strict';
+  /* ============================ basics ============================ */
+  var API = (window.KIA_CONFIG || {}).apiUrl || '';
+  var TOKEN = 'kc_token';
+  var GROUPS = ['Active Buyer', 'Sphere', 'Cold', 'Missing Info'];
+  var FAMILY = ['Jason Robinson', 'Jennifer Robinson'];
+  var view = document.getElementById('view');
+  var state = { me: null, rows: null, rowsAt: 0, today: null, filter: { q: '', group: '', sort: 'recent', shown: 150 } };
+
+  function tok() { try { return localStorage.getItem(TOKEN) || ''; } catch (e) { return ''; } }
+  function setTok(t) { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); } catch (e) {} }
+  function $(s, r) { return (r || document).querySelector(s); }
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v == null || v === false) return;
+      if (k === 'text') n.textContent = v;
+      else if (k === 'on') Object.keys(v).forEach(function (ev) { n.addEventListener(ev, v[ev]); });
+      else if (k === 'cls') n.className = v;
+      else n.setAttribute(k, v === true ? '' : v);
+    });
+    (kids || []).forEach(function (c) { if (c != null) n.append(c.nodeType ? c : document.createTextNode(String(c))); });
+    return n;
+  }
+  var ERR = {
+    wrong_login: 'That email and password don’t match. Try again.',
+    locked: 'Too many tries. Wait 15 minutes and try again.',
+    invite_not_found: 'This invite link was already used or isn’t valid. Ask Jason for a new one.',
+    invite_expired: 'This invite link has expired. Ask Jason for a new one.',
+    password_too_short: 'Use at least 10 characters.',
+    not_configured: 'The app isn’t connected to its server yet. Paste the server address into config.js.',
+    network: 'Couldn’t reach the server. Check your connection and try again.',
+    lofty_no_key: 'The Lofty API key isn’t set up yet. Add it in the script’s settings.',
+    lofty_auth: 'Lofty didn’t accept the API key. Check that it’s current in Lofty under Settings, then Integrations, then API.',
+    need_phone: 'This contact has no phone number to log a call against. Add one first.',
+    need_message: 'Type the text you sent first.',
+    bad_email: 'That email address doesn’t look right.',
+    need_subject_body: 'Add a subject and a message.',
+    need_note: 'Type a note first.',
+    need_first_name: 'Add a first name.',
+    bad_time: 'Pick a date and time.'
+  };
+  function errText(e) {
+    var c = (e && (e.code || e.message)) || '';
+    if (ERR[c]) return ERR[c];
+    if (/^lofty_4/.test(c)) return 'Lofty turned that down. Check the details and try again.';
+    if (/^lofty_5/.test(c)) return 'Lofty had a hiccup. Try again in a minute.';
+    return 'Something went wrong. Try again.';
+  }
+
+  function call(action, payload) {
+    if (!API) return Promise.reject({ code: 'not_configured' });
+    var body = Object.assign({ action: action, token: tok() }, payload || {});
+    return fetch(API, { method: 'POST', body: JSON.stringify(body), redirect: 'follow' })
+      .catch(function () { throw { code: 'network' }; })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          var code = (j && j.error) || 'error';
+          if (code === 'not_signed_in') { setTok(''); state.me = null; route(); }
+          throw { code: code.split(':')[0], detail: j && j.detail };
+        }
+        return j;
+      });
+  }
+
+  function toast(msg, bad) {
+    var t = el('div', { cls: 'toast' + (bad ? ' bad' : ''), role: 'status', text: msg });
+    document.body.append(t);
+    setTimeout(function () { t.remove(); }, bad ? 5000 : 2600);
+  }
+
+  /* ============================ formatting ============================ */
+  function digits(s) { return String(s || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, ''); }
+  function fmtPhone(p) { var d = digits(p); return d.length === 10 ? '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6) : (p || ''); }
+  function money(n) { if (!n) return ''; return n >= 1e6 ? '$' + (n / 1e6).toFixed(n % 1e6 ? 2 : 0).replace(/\.?0+$/, '') + 'M' : '$' + Math.round(n / 1000) + 'K'; }
+  function priceRange(r) { if (!r.priceMin && !r.priceMax) return ''; if (r.priceMin && r.priceMax && r.priceMin !== r.priceMax) return money(r.priceMin) + '–' + money(r.priceMax); return money(r.priceMax || r.priceMin); }
+  function dayLabel(ymd) {
+    if (!ymd) return 'Never';
+    var d = new Date(ymd + 'T12:00:00'), now = new Date(), diff = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5);
+    if (diff === 0) return 'Today'; if (diff === 1) return 'Yesterday';
+    if (diff < 7) return diff + ' days ago';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+  }
+  function whenLabel(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var now = new Date(), sameDay = d.toDateString() === now.toDateString();
+    var tm = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    if (sameDay) return 'Today ' + tm;
+    var tmr = new Date(now); tmr.setDate(now.getDate() + 1);
+    if (d.toDateString() === tmr.toDateString()) return 'Tomorrow ' + tm;
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' ' + tm;
+  }
+  function stamp(s) {
+    if (!s) return '';
+    var d = new Date(String(s).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? '' : 'Z'));
+    if (isNaN(d)) return s;
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined, hour: 'numeric', minute: '2-digit' });
+  }
+  function isIOS() { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function telHref(p) { var d = digits(p); return d ? 'tel:+1' + d : ''; }
+  function smsHref(p, body) { var d = digits(p); if (!d) return ''; return 'sms:+1' + d + (body ? (isIOS() ? '&' : '?') + 'body=' + encodeURIComponent(body) : ''); }
+  function localStamp(dateStr, timeStr) { return dateStr && timeStr ? dateStr + 'T' + timeStr : ''; }
+  function ymdOffset(days) { var d = new Date(); d.setDate(d.getDate() + days); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+  /* ============================ data ============================ */
+  function loadRows(fresh) {
+    if (state.rows && !fresh && Date.now() - state.rowsAt < 60000) return Promise.resolve(state.rows);
+    return call('leads', { fresh: !!fresh }).then(function (j) { state.rows = j.rows; state.rowsAt = Date.now(); return j.rows; });
+  }
+  function callList(rows) {
+    return rows.filter(function (r) { return !r.unsubscribed && r.canCall && r.phone && FAMILY.indexOf(r.name) < 0; })
+      .map(function (r) {
+        var portal = r.source !== 'CSV Import' && r.source !== 'Kia\'s CRM';
+        var priced = r.priceMin != null || r.priceMax != null;
+        var rank = r.score || 0, why = 'High engagement score';
+        if (portal && r.daysSinceTouch == null) { rank = 3000 - (r.daysSinceCreated || 0); why = r.source + ' lead, never contacted'; }
+        else if (priced && r.daysSinceVisit != null) { rank = 2000 - r.daysSinceVisit; why = 'Saved price range, on your site ' + r.daysSinceVisit + ' days ago'; }
+        else if (priced) { rank = 1000 + (r.score || 0); why = 'Saved price range ' + priceRange(r); }
+        else if (r.daysSinceVisit != null) { rank = 500 - r.daysSinceVisit; why = 'On your site ' + r.daysSinceVisit + ' days ago'; }
+        return { r: r, rank: rank, why: why };
+      })
+      .filter(function (x) { return x.r.daysSinceTouch == null || x.r.daysSinceTouch > 2; })
+      .sort(function (a, b) { return b.rank - a.rank; }).slice(0, 6);
+  }
+
+  /* ============================ routing ============================ */
+  function route() {
+    closeSheet();
+    var h = location.hash.replace(/^#/, '');
+    var signedIn = !!tok();
+    var params = new URLSearchParams(location.search);
+    document.getElementById('tabs').hidden = !signedIn;
+    document.getElementById('menuBtn').hidden = !signedIn;
+    document.getElementById('refreshBtn').hidden = !signedIn;
+    if (params.get('invite')) return showInvite(params.get('invite'));
+    if (!signedIn) return showLogin();
+    var tab = h.indexOf('lead=') === 0 ? 'contacts' : (h || 'today');
+    document.querySelectorAll('#tabs a').forEach(function (a) { a.toggleAttribute('aria-current', a.dataset.tab === tab); if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); });
+    window.scrollTo(0, 0);
+    if (h.indexOf('lead=') === 0) return showLead(h.slice(5));
+    if (h === 'contacts') return showContacts();
+    if (h === 'add') return showAdd();
+    return showToday();
+  }
+  window.addEventListener('hashchange', route);
+
+  /* ============================ sign in ============================ */
+  function showLogin() {
+    var err = el('p', { cls: 'err', role: 'alert' });
+    var email = el('input', { type: 'email', id: 'li-email', autocomplete: 'username', required: true });
+    var pw = el('input', { type: 'password', id: 'li-pw', autocomplete: 'current-password', required: true });
+    var btn = el('button', { cls: 'btn', type: 'submit', text: 'Sign in' });
+    var form = el('form', { cls: 'auth', on: { submit: function (e) {
+      e.preventDefault(); err.textContent = ''; btn.disabled = true;
+      call('login', { email: email.value, password: pw.value }).then(function (j) { setTok(j.token); state.me = j.me; location.hash = '#today'; route(); })
+        .catch(function (e) { err.textContent = errText(e); }).finally(function () { btn.disabled = false; });
+    } } }, [
+      el('p', { cls: 'hello', text: 'Welcome back' }),
+      el('label', { for: 'li-email' }, ['Email', email]),
+      el('label', { for: 'li-pw' }, ['Password', pw]),
+      btn, err
+    ]);
+    view.replaceChildren(form);
+  }
+
+  function showInvite(code) {
+    var err = el('p', { cls: 'err', role: 'alert' });
+    var who = el('p', { cls: 'sub', text: 'Checking your invite…' });
+    var pw = el('input', { type: 'password', id: 'iv-pw', autocomplete: 'new-password', minlength: '10', required: true });
+    var btn = el('button', { cls: 'btn', type: 'submit', text: 'Set password', disabled: true });
+    var form = el('form', { cls: 'auth', on: { submit: function (e) {
+      e.preventDefault(); err.textContent = ''; btn.disabled = true;
+      call('acceptInvite', { code: code, password: pw.value }).then(function (j) {
+        setTok(j.token); state.me = j.me; history.replaceState(null, '', location.pathname + '#today'); route();
+      }).catch(function (e) { err.textContent = errText(e); btn.disabled = false; });
+    } } }, [
+      el('p', { cls: 'hello', text: 'Set up your login' }), who,
+      el('label', { for: 'iv-pw' }, ['Choose a password (10+ characters)', pw]), btn, err
+    ]);
+    view.replaceChildren(form);
+    call('inviteInfo', { code: code }).then(function (j) { who.textContent = 'For ' + j.name + ' (' + j.email + '). You’ll sign in with this email.'; btn.disabled = false; })
+      .catch(function (e) { who.textContent = ''; err.textContent = errText(e); });
+  }
+
+  /* ============================ Today ============================ */
+  function showToday() {
+    var first = state.me && state.me.name ? state.me.name.split(' ')[0] : '';
+    var hr = new Date().getHours();
+    var greet = (hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening') + (first ? ', ' + first : '');
+    var dueBox = el('div', { cls: 'list' }, [el('p', { cls: 'loading', text: 'Loading your follow-ups…' })]);
+    var newBox = el('div', { cls: 'list' }, [el('p', { cls: 'loading', text: 'Loading…' })]);
+    var callBox = el('div', { cls: 'list' }, [el('p', { cls: 'loading', text: 'Loading…' })]);
+    var upBox = el('div', { cls: 'list' });
+    view.replaceChildren(
+      el('div', {}, [el('p', { cls: 'hello', text: greet }), el('p', { cls: 'sub', text: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) })]),
+      el('section', { cls: 'card', id: 'due' }, [el('h2', { text: 'Follow-ups due' }), dueBox]),
+      el('section', { cls: 'card', id: 'new-leads' }, [el('h2', { text: 'New leads to call' }), newBox]),
+      el('section', { cls: 'card', id: 'worth-a-call' }, [el('h2', { text: 'Worth a call today' }), callBox]),
+      el('section', { cls: 'card', id: 'coming-up' }, [el('h2', { text: 'Coming up' }), upBox])
+    );
+    call('today').then(function (j) {
+      state.today = j;
+      fillTasks(dueBox, j.due, 'Nothing due. Nice work.');
+      fillTasks(upBox, j.upcoming, 'Nothing scheduled yet. Set a follow-up from any contact.');
+    }).catch(function (e) { dueBox.replaceChildren(el('p', { cls: 'err', text: errText(e) })); upBox.replaceChildren(); });
+    loadRows().then(function (rows) {
+      var fresh = rows.filter(function (r) { return r.daysSinceTouch == null && ((r.source !== 'CSV Import' && r.source !== 'Kia\'s CRM') || (r.daysSinceCreated != null && r.daysSinceCreated <= 7)); })
+        .sort(function (a, b) { return (a.daysSinceCreated || 0) - (b.daysSinceCreated || 0); }).slice(0, 8);
+      newBox.replaceChildren.apply(newBox, fresh.length ? fresh.map(function (r) { return leadRow(r, (r.source || 'New') + ' · added ' + dayLabel(r.created).toLowerCase()); }) : [el('p', { cls: 'empty', text: 'No new leads waiting.' })]);
+      var cl = callList(rows);
+      callBox.replaceChildren.apply(callBox, cl.length ? cl.map(function (x) { return leadRow(x.r, x.why); }) : [el('p', { cls: 'empty', text: 'Nobody stands out today.' })]);
+    }).catch(function (e) { newBox.replaceChildren(el('p', { cls: 'err', text: errText(e) })); callBox.replaceChildren(); });
+  }
+
+  function fillTasks(box, tasks, emptyText) {
+    if (!tasks || !tasks.length) { box.replaceChildren(el('p', { cls: 'empty', text: emptyText })); return; }
+    box.replaceChildren.apply(box, tasks.map(taskRow));
+  }
+
+  function taskRow(t) {
+    var w = new Date(t.when), now = new Date();
+    var late = w < new Date(now.toDateString());
+    var pill = el('span', { cls: 'pill ' + (late ? 'due' : (w.toDateString() === now.toDateString() ? 'today' : '')), text: late ? 'Overdue' : whenLabel(t.when) });
+    var done = el('button', { cls: 'btn small ghost', type: 'button', text: 'Done', on: { click: function (e) {
+      e.stopPropagation(); done.disabled = true;
+      call('finishTask', { taskId: t.id }).then(function () { toast('Marked done'); row.remove(); }).catch(function (er) { done.disabled = false; toast(errText(er), true); });
+    } } });
+    var row = el('div', { cls: 'row', role: 'link', tabindex: '0', on: {
+      click: function () { if (t.leadId) location.hash = '#lead=' + t.leadId; },
+      keydown: function (e) { if (e.key === 'Enter' && t.leadId) location.hash = '#lead=' + t.leadId; } } }, [
+      el('div', { cls: 'dot', 'aria-hidden': 'true', text: ({ Call: '☎', Text: '✉', Email: '@', Appointment: '⌂' }[t.type] || '•') }),
+      el('div', { cls: 'main' }, [el('div', { cls: 'name', text: t.leadName || 'Follow-up' }), el('div', { cls: 'meta', text: (t.type === 'Appointment' ? 'Showing' : t.type) + (t.content ? ' · ' + t.content : '') })]),
+      el('div', { cls: 'side' }, [pill, el('div', { style: 'margin-top:6px' }, [done])])
+    ]);
+    return row;
+  }
+
+  function leadRow(r, meta) {
+    return el('a', { cls: 'row', href: '#lead=' + r.id }, [
+      el('div', { cls: 'main' }, [el('div', { cls: 'name', text: r.name || '(no name)' }), el('div', { cls: 'meta', text: meta || [r.area, priceRange(r)].filter(Boolean).join(' · ') })]),
+      el('div', { cls: 'side' }, [el('span', { cls: 'pill' + (r.group === 'Active Buyer' ? ' ab' : ''), text: r.group }), el('div', { style: 'margin-top:4px', text: dayLabel(r.lastTouch) })])
+    ]);
+  }
+
+  /* ============================ Contacts ============================ */
+  function showContacts() {
+    var f = state.filter;
+    var q = el('input', { type: 'search', id: 'c-q', placeholder: 'Search name, city, source', 'aria-label': 'Search contacts', value: f.q });
+    var sort = el('select', { id: 'c-sort', 'aria-label': 'Sort' }, [
+      el('option', { value: 'recent', text: 'Newest first' }), el('option', { value: 'stale', text: 'Longest since touch' }),
+      el('option', { value: 'touched', text: 'Recently touched' }), el('option', { value: 'name', text: 'Name A–Z' })]);
+    sort.value = f.sort; sort.style.flex = '0 0 auto'; sort.style.width = 'auto';
+    var chips = el('div', { cls: 'chips', role: 'group', 'aria-label': 'Group' }, [''].concat(GROUPS).map(function (g) {
+      return el('button', { cls: 'chip', type: 'button', 'aria-pressed': String(f.group === g), text: g || 'All', on: { click: function () {
+        f.group = g; f.shown = 150; chips.querySelectorAll('.chip').forEach(function (c) { c.setAttribute('aria-pressed', String(c.textContent === (g || 'All'))); }); draw();
+      } } });
+    }));
+    var count = el('p', { cls: 'count' });
+    var list = el('div', { cls: 'list' }, [el('p', { cls: 'loading', text: 'Loading contacts…' })]);
+    var more = el('button', { cls: 'btn ghost more', type: 'button', text: 'Show more', hidden: true, on: { click: function () { f.shown += 150; draw(); } } });
+    view.replaceChildren(el('div', { cls: 'search' }, [q, sort]), chips, el('section', { cls: 'card' }, [count, list, more]));
+    q.addEventListener('input', function () { f.q = q.value; f.shown = 150; draw(); });
+    sort.addEventListener('change', function () { f.sort = sort.value; draw(); });
+    function draw() {
+      if (!state.rows) return;
+      var needle = f.q.trim().toLowerCase(), qd = digits(f.q);
+      var rows = state.rows.filter(function (r) {
+        if (f.group && r.group !== f.group) return false;
+        if (!needle) return true;
+        return (r.name + ' ' + r.area + ' ' + r.source + ' ' + r.email).toLowerCase().indexOf(needle) >= 0 || (qd.length >= 4 && digits(r.phone).indexOf(qd) >= 0);
+      });
+      var cmp = {
+        recent: function (a, b) { return (a.daysSinceCreated == null ? 1e9 : a.daysSinceCreated) - (b.daysSinceCreated == null ? 1e9 : b.daysSinceCreated); },
+        stale: function (a, b) { return (b.daysSinceTouch == null ? 1e9 : b.daysSinceTouch) - (a.daysSinceTouch == null ? 1e9 : a.daysSinceTouch); },
+        touched: function (a, b) { return (a.daysSinceTouch == null ? 1e9 : a.daysSinceTouch) - (b.daysSinceTouch == null ? 1e9 : b.daysSinceTouch); },
+        name: function (a, b) { return a.name.localeCompare(b.name); }
+      }[f.sort];
+      rows = rows.slice().sort(cmp);
+      count.textContent = rows.length.toLocaleString() + (rows.length === 1 ? ' contact' : ' contacts');
+      var frag = rows.slice(0, f.shown).map(function (r) { return leadRow(r); });
+      list.replaceChildren.apply(list, frag.length ? frag : [el('p', { cls: 'empty', text: 'No contacts match.' })]);
+      more.hidden = rows.length <= f.shown;
+    }
+    loadRows().then(draw).catch(function (e) { list.replaceChildren(el('p', { cls: 'err', text: errText(e) })); });
+  }
+
+  /* ============================ One contact ============================ */
+  var current = null;
+  function showLead(id) {
+    current = null;
+    var cached = (state.rows || []).filter(function (r) { return r.id === id; })[0];
+    var back = el('button', { cls: 'back', type: 'button', text: '← Contacts', on: { click: function () { history.length > 1 ? history.back() : (location.hash = '#contacts'); } } });
+    var head = el('div', { cls: 'detail-head' }, [el('p', { cls: 'nm', text: cached ? cached.name : '' }), el('p', { cls: 'loading', text: 'Loading from Lofty…' })]);
+    view.replaceChildren(back, head);
+    call('lead', { leadId: id }).then(function (j) { current = j; drawLead(j, back); })
+      .catch(function (e) { head.replaceChildren(el('p', { cls: 'err', text: errText(e) })); });
+  }
+
+  function drawLead(j, back) {
+    var L = j.lead;
+    var phone = L.phones && L.phones[0], email = L.emails && L.emails[0];
+    var group = el('select', { id: 'd-group', 'aria-label': 'Group' }, GROUPS.concat(L.group === 'Ungrouped' ? ['Ungrouped'] : []).map(function (g) { return el('option', { value: g, text: g }); }));
+    group.value = L.group; group.style.width = 'auto';
+    group.addEventListener('change', function () {
+      if (group.value === 'Ungrouped') return;
+      call('updateLead', { leadId: L.id, patch: { group: group.value } }).then(function () { toast('Moved to ' + group.value); bumpRow(L.id, { group: group.value }); })
+        .catch(function (e) { toast(errText(e), true); group.value = L.group; });
+    });
+    var facts = [L.area && (L.area + (L.state ? ', ' + L.state : '')), priceRange(L), L.source && L.source !== 'CSV Import' && 'Source: ' + L.source, 'Last touch: ' + dayLabel(L.lastTouch)].filter(Boolean).join(' · ');
+    var consent = L.unsubscribed ? el('span', { cls: 'pill due', text: 'Unsubscribed' }) : (!L.canCall || !L.canText ? el('span', { cls: 'pill today', text: 'No call/text consent in Lofty' }) : null);
+    var kv = el('div', { cls: 'kv' }, [
+      (L.phones || []).length ? el('div', {}, (L.phones || []).map(function (p, i) { return el('span', {}, [i ? ' · ' : '', el('a', { href: telHref(p), text: fmtPhone(p) })]); })) : el('div', { cls: 'empty', text: 'No phone on file' }),
+      (L.emails || []).length ? el('div', {}, (L.emails || []).map(function (m, i) { return el('span', {}, [i ? ' · ' : '', m]); })) : el('div', { cls: 'empty', text: 'No email on file' })
+    ]);
+    var acts = el('div', { cls: 'actions' }, [
+      actBtn('☎', 'Call', !phone, function () { openCall(L, phone); }),
+      actBtn('✉', 'Text', !phone, function () { openText(L, phone); }),
+      actBtn('@', 'Email', !email, function () { openEmail(L); }),
+      actBtn('✎', 'Note', false, function () { openNote(L); }),
+      actBtn('⏰', 'Follow-up', false, function () { openFollowUp(L, 'Call'); }),
+      actBtn('⌂', 'Showing', false, function () { openFollowUp(L, 'Appointment'); })
+    ]);
+    var tasksBox = el('div', { cls: 'list' }, j.tasks.length ? j.tasks.map(taskRowInline) : [el('p', { cls: 'empty', text: 'No open follow-ups.' })]);
+    var tl = el('div', { cls: 'tl' }, j.timeline.length ? j.timeline.map(tlItem) : [el('p', { cls: 'empty', text: 'No activity yet.' })]);
+    view.replaceChildren(
+      back,
+      el('div', { cls: 'detail-head' }, [
+        el('p', { cls: 'nm', text: L.name || '(no name)' }),
+        el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center' }, [group, consent]),
+        el('p', { cls: 'sub', text: facts })
+      ]),
+      kv, acts,
+      el('section', { cls: 'card', id: 'open-follow-ups' }, [el('h2', { text: 'Open follow-ups' }), tasksBox]),
+      el('section', { cls: 'card', id: 'history' }, [el('h2', { text: 'History' }), tl]),
+      el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [el('button', { cls: 'btn ghost', type: 'button', text: 'Edit details', on: { click: function () { openEdit(L); } } })])
+    );
+  }
+
+  function actBtn(icon, label, disabled, fn) { return el('button', { cls: 'act', type: 'button', disabled: disabled, on: { click: fn } }, [el('b', { 'aria-hidden': 'true', text: icon }), label]); }
+
+  function taskRowInline(t) {
+    var done = el('button', { cls: 'btn small ghost', type: 'button', text: 'Done', on: { click: function () {
+      done.disabled = true;
+      call('finishTask', { taskId: t.id }).then(function () { toast('Marked done'); r.remove(); }).catch(function (e) { done.disabled = false; toast(errText(e), true); });
+    } } });
+    var r = el('div', { cls: 'row', style: 'cursor:default' }, [
+      el('div', { cls: 'main' }, [el('div', { cls: 'name', text: (t.type === 'Appointment' ? 'Showing' : t.type) + ' · ' + whenLabel(t.when) }), el('div', { cls: 'meta', text: [t.content, t.address].filter(Boolean).join(' · ') })]),
+      done
+    ]);
+    return r;
+  }
+
+  function tlItem(x) {
+    var label = x.kind === 'Note' ? 'Note' : x.kind;
+    var bits = [];
+    if (x.direction) bits.push(x.direction);
+    if (x.outcome) bits.push(x.outcome.replace(/([a-z])([A-Z])/g, '$1 $2'));
+    if (x.event) bits.push(x.event);
+    if (x.how && x.how !== 'Manual') bits.push(x.how);
+    return el('div', { cls: 'it' }, [
+      el('span', { cls: 'k', text: label }),
+      el('span', { cls: 'w', text: [stamp(x.at)].concat(bits).filter(Boolean).join(' · ') }),
+      (x.subject || x.text) ? el('span', { cls: 'x', text: [x.subject, x.text].filter(Boolean).join('\n') }) : null
+    ]);
+  }
+
+  function bumpRow(id, patch) {
+    (state.rows || []).forEach(function (r) { if (r.id === id) Object.assign(r, patch); });
+  }
+  function touched(id) { bumpRow(id, { lastTouch: ymdOffset(0), daysSinceTouch: 0 }); }
+  function reload(id) { if (location.hash === '#lead=' + id) showLead(id); }
+
+  /* ============================ sheets ============================ */
+  var openSheetEls = null;
+  function sheet(title, body, onSave, saveText) {
+    closeSheet();
+    var err = el('p', { cls: 'err', role: 'alert' });
+    var save = el('button', { cls: 'btn', type: 'submit', text: saveText || 'Save' });
+    var cancel = el('button', { cls: 'btn ghost', type: 'button', text: 'Cancel', on: { click: closeSheet } });
+    var form = el('form', { cls: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, on: { submit: function (e) {
+      e.preventDefault(); err.textContent = ''; save.disabled = true;
+      var p;
+      try { p = Promise.resolve(onSave()); } catch (er) { p = Promise.reject(er); }   // runs inside the tap, so Messages/phone links can open
+      p.then(function (ok) { if (ok !== false) closeSheet(); })
+        .catch(function (er) { err.textContent = errText(er); }).finally(function () { save.disabled = false; });
+    } } }, [el('h3', { text: title })].concat(body, [err, el('div', { cls: 'row2' }, [cancel, save])]));
+    var scrim = el('div', { cls: 'scrim', on: { click: closeSheet } });
+    document.body.append(scrim, form);
+    openSheetEls = [scrim, form];
+    var first = form.querySelector('textarea, input:not([type=checkbox]), select');
+    if (first && window.matchMedia('(min-width:700px)').matches) first.focus();
+    return form;
+  }
+  function closeSheet() { if (openSheetEls) openSheetEls.forEach(function (n) { n.remove(); }); openSheetEls = null; }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+
+  function seg(options, value, onPick) {
+    var box = el('div', { cls: 'seg', role: 'group' });
+    options.forEach(function (o) {
+      box.append(el('button', { type: 'button', 'aria-pressed': String(o[0] === value), 'data-v': o[0], text: o[1], on: { click: function () {
+        box.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === o[0])); }); onPick(o[0]);
+      } } }));
+    });
+    return box;
+  }
+
+  /* follow-up picker shared by call / text / email */
+  function followUpPicker(defaultType) {
+    var st = { pick: '', type: defaultType || 'Call' };
+    var date = el('input', { type: 'date', 'aria-label': 'Follow-up date', value: ymdOffset(1), hidden: true });
+    var time = el('input', { type: 'time', 'aria-label': 'Follow-up time', value: '10:00', hidden: true });
+    var cal = el('input', { type: 'checkbox', checked: true });
+    var calRow = el('label', { cls: 'check', hidden: true }, [cal, 'Add to my Google Calendar']);
+    var custom = el('div', { cls: 'grid2', hidden: true }, [date, time]);
+    var box = el('div', { style: 'display:grid;gap:8px' }, [
+      el('span', { style: 'font-size:13px;color:var(--muted)', text: 'Next follow-up' }),
+      seg([['', 'None'], ['1', 'Tomorrow'], ['3', 'In 3 days'], ['7', 'Next week'], ['pick', 'Pick a date']], '', function (v) {
+        st.pick = v; custom.hidden = v !== 'pick'; date.hidden = time.hidden = v !== 'pick'; calRow.hidden = !v;
+        if (v && v !== 'pick') { date.value = ymdOffset(Number(v)); time.value = '10:00'; }
+      }),
+      custom, calRow
+    ]);
+    box.value = function () {
+      if (!st.pick) return null;
+      return { when: localStamp(date.value, time.value), type: st.type, calendar: cal.checked };
+    };
+    box.setType = function (t) { st.type = t; };
+    return box;
+  }
+
+  function openCall(L, phone) {
+    var href = telHref(phone);
+    var outcome = 'Talked';
+    var note = el('textarea', { placeholder: 'What did you talk about?', 'aria-label': 'Call notes', style: 'min-height:90px' });
+    var fu = followUpPicker('Call');
+    var phonePick = el('select', { 'aria-label': 'Number called' }, (L.phones || []).map(function (p) { return el('option', { value: p, text: fmtPhone(p) }); }));
+    phonePick.value = phone;
+    var dial = el('a', { cls: 'btn ghost', href: href, text: 'Call ' + fmtPhone(phone) });
+    phonePick.addEventListener('change', function () { dial.href = telHref(phonePick.value); dial.textContent = 'Call ' + fmtPhone(phonePick.value); });
+    sheet('Call ' + (L.first || L.name), [
+      dial,
+      (L.phones || []).length > 1 ? phonePick : null,
+      el('span', { style: 'font-size:13px;color:var(--muted)', text: 'How did it go?' }),
+      seg([['Talked', 'Talked'], ['VoiceMessage', 'Left voicemail'], ['NoAnswer', 'No answer'], ['BadNumber', 'Bad number']], outcome, function (v) { outcome = v; }),
+      note, fu
+    ].filter(Boolean), function () {
+      return call('logCall', { leadId: L.id, phone: phonePick.value || phone, outcome: outcome, note: note.value.trim(), followUp: fu.value() })
+        .then(function () { toast('Call logged in Lofty'); touched(L.id); reload(L.id); });
+    }, 'Log call');
+  }
+
+  var TEXTS = [
+    'Hi {first}, it’s Kia Robinson with LPT Realty! Just checking in. Are you still thinking about a move this year?',
+    'Hi {first}! A few homes just came up that made me think of you. Want me to send them over?',
+    'Hi {first}, it’s Kia. Happy to answer any questions about the market whenever you’re ready. No pressure!'
+  ];
+  function openText(L, phone) {
+    var msg = el('textarea', { 'aria-label': 'Message', placeholder: 'Type your text' });
+    var tpls = el('div', { cls: 'tpls' }, TEXTS.map(function (t) {
+      var filled = t.replace('{first}', L.first || 'there');
+      return el('button', { type: 'button', text: filled.length > 60 ? filled.slice(0, 58) + '…' : filled, on: { click: function () { msg.value = filled; } } });
+    }));
+    var fu = followUpPicker('Text');
+    sheet('Text ' + (L.first || L.name), [
+      el('span', { style: 'font-size:13px;color:var(--muted)', text: 'Opens Messages on your phone with this text ready to send, and logs it in Lofty.' }),
+      tpls, msg, fu
+    ], function () {
+      var text = msg.value.trim();
+      if (!text) throw { code: 'need_message' };
+      var href = smsHref(phone, text);
+      var a = el('a', { href: href }); document.body.append(a); a.click(); a.remove();   // open Messages in the same tap
+      return call('logText', { leadId: L.id, message: text, followUp: fu.value() }).then(function () {
+        toast('Text logged in Lofty'); touched(L.id);
+        setTimeout(function () { reload(L.id); }, 600);
+      });
+    }, 'Open Messages');
+  }
+
+  function openEmail(L) {
+    var to = el('select', { 'aria-label': 'To' }, (L.emails || []).map(function (m) { return el('option', { value: m, text: m }); }));
+    var subject = el('input', { type: 'text', 'aria-label': 'Subject', placeholder: 'Subject' });
+    var body = el('textarea', { 'aria-label': 'Message', placeholder: 'Hi ' + (L.first || '') + ',\n\n', style: 'min-height:170px' });
+    body.value = 'Hi ' + (L.first || 'there') + ',\n\n\n\nKia Robinson\nReal Estate Agent · LPT Realty\n(816) 853-3676';
+    var fu = followUpPicker('Email');
+    sheet('Email ' + (L.first || L.name), [
+      el('label', {}, ['To', to]), el('label', {}, ['Subject', subject]), el('label', {}, ['Message', body]),
+      el('span', { style: 'font-size:13px;color:var(--muted)', text: 'Sends from your Gmail (kiasellskc@gmail.com) and logs it in Lofty.' }), fu
+    ], function () {
+      return call('sendEmail', { leadId: L.id, to: to.value, subject: subject.value, body: body.value, followUp: fu.value() })
+        .then(function () { toast('Email sent'); touched(L.id); reload(L.id); });
+    }, 'Send email');
+  }
+
+  function openNote(L) {
+    var note = el('textarea', { 'aria-label': 'Note', placeholder: 'What should you remember about ' + (L.first || 'them') + '?' });
+    sheet('Add a note', [note], function () {
+      return call('addNote', { leadId: L.id, content: note.value }).then(function () { toast('Note saved in Lofty'); reload(L.id); });
+    }, 'Save note');
+  }
+
+  function openFollowUp(L, type) {
+    var showing = type === 'Appointment';
+    var t = type;
+    var date = el('input', { type: 'date', 'aria-label': 'Date', value: ymdOffset(1), required: true });
+    var time = el('input', { type: 'time', 'aria-label': 'Time', value: showing ? '17:30' : '10:00', required: true });
+    var mins = el('select', { 'aria-label': 'Length' }, [['30', '30 minutes'], ['60', '1 hour'], ['90', '1.5 hours'], ['120', '2 hours']].map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
+    mins.value = '60';
+    var addr = el('input', { type: 'text', 'aria-label': 'Address', placeholder: 'Property address' });
+    var note = el('textarea', { 'aria-label': 'Note', placeholder: showing ? 'Which homes, who’s coming' : 'What to follow up about', style: 'min-height:80px' });
+    var cal = el('input', { type: 'checkbox', checked: true });
+    var body = [];
+    if (!showing) body.push(seg([['Call', 'Call'], ['Text', 'Text'], ['Email', 'Email'], ['Other', 'Other']], 'Call', function (v) { t = v; }));
+    body.push(el('div', { cls: 'grid2' }, [el('label', {}, ['Date', date]), el('label', {}, ['Time', time])]));
+    if (showing) body.push(el('div', { cls: 'grid2' }, [el('label', {}, ['Address', addr]), el('label', {}, ['Length', mins])]));
+    body.push(note, el('label', { cls: 'check' }, [cal, 'Add to my Google Calendar']));
+    sheet(showing ? 'Schedule a showing' : 'Set a follow-up', body, function () {
+      return call('addFollowUp', { leadId: L.id, followUp: { when: localStamp(date.value, time.value), type: t, note: note.value.trim(), address: addr.value.trim(), minutes: Number(mins.value), calendar: cal.checked } })
+        .then(function () { toast(showing ? 'Showing scheduled' : 'Follow-up set'); reload(L.id); });
+    }, showing ? 'Schedule' : 'Set follow-up');
+  }
+
+  function openEdit(L) {
+    var fn = el('input', { type: 'text', value: L.first || '', autocomplete: 'off' });
+    var ln = el('input', { type: 'text', value: L.last || '', autocomplete: 'off' });
+    var ph = el('input', { type: 'tel', value: (L.phones || []).map(fmtPhone).join(', '), autocomplete: 'off' });
+    var em = el('input', { type: 'text', value: (L.emails || []).join(', '), autocomplete: 'off' });
+    var city = el('input', { type: 'text', value: L.area || '', autocomplete: 'off' });
+    var pmin = el('input', { type: 'text', inputmode: 'numeric', value: L.priceMin ? '$' + L.priceMin.toLocaleString() : '' });
+    var pmax = el('input', { type: 'text', inputmode: 'numeric', value: L.priceMax ? '$' + L.priceMax.toLocaleString() : '' });
+    [pmin, pmax].forEach(moneyInput);
+    var consent = el('input', { type: 'checkbox' });
+    sheet('Edit details', [
+      el('div', { cls: 'grid2' }, [el('label', {}, ['First name', fn]), el('label', {}, ['Last name', ln])]),
+      el('label', {}, ['Phone (separate several with commas)', ph]),
+      el('label', {}, ['Email (separate several with commas)', em]),
+      el('div', { cls: 'grid2' }, [el('label', {}, ['Area or city', city]), el('label', {}, ['Price from', pmin]), el('label', {}, ['Price to', pmax])]),
+      (!L.canCall || !L.canText) && !L.unsubscribed ? el('label', { cls: 'check' }, [consent, 'They’ve agreed to calls, texts and emails']) : null
+    ].filter(Boolean), function () {
+      if (!fn.value.trim()) throw { code: 'need_first_name' };
+      var patch = {
+        firstName: fn.value, lastName: ln.value,
+        phones: ph.value.split(',').map(digits).filter(function (d) { return d.length >= 10; }),
+        emails: em.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+        city: city.value.trim() || undefined, priceMin: digits(pmin.value) ? Number(digits(pmin.value)) : null, priceMax: digits(pmax.value) ? Number(digits(pmax.value)) : null
+      };
+      if (consent.checked) patch.consent = true;
+      return call('updateLead', { leadId: L.id, patch: patch }).then(function () { toast('Saved in Lofty'); state.rowsAt = 0; reload(L.id); });
+    }, 'Save');
+  }
+
+  function moneyInput(inp) {
+    inp.addEventListener('input', function () { var d = inp.value.replace(/\D/g, ''); inp.value = d ? '$' + Number(d).toLocaleString('en-US') : ''; });
+  }
+
+  /* ============================ Add lead ============================ */
+  function showAdd() {
+    var f = {};
+    function inp(id, label, attrs) { f[id] = el('input', Object.assign({ id: 'a-' + id, autocomplete: 'off' }, attrs || {})); return el('label', { for: 'a-' + id }, [label, f[id]]); }
+    function sel(id, label, opts) { f[id] = el('select', { id: 'a-' + id }, opts.map(function (o) { return el('option', { value: o[0], text: o[1] }); })); return el('label', { for: 'a-' + id }, [label, f[id]]); }
+    var err = el('p', { cls: 'err', role: 'alert' });
+    var save = el('button', { cls: 'btn', type: 'submit', text: 'Save to Lofty' });
+    var form = el('form', { cls: 'card', id: 'add-lead', on: { submit: function (e) {
+      e.preventDefault(); err.textContent = '';
+      if (!f.firstName.value.trim()) { err.textContent = ERR.need_first_name; f.firstName.focus(); return; }
+      save.disabled = true;
+      call('createLead', { lead: {
+        firstName: f.firstName.value, lastName: f.lastName.value, phone: digits(f.phone.value), email: f.email.value.trim(),
+        type: f.type.value, group: f.group.value, source: f.source.value, city: f.city.value, state: f.state.value,
+        priceMin: digits(f.priceMin.value), priceMax: digits(f.priceMax.value), timeframe: f.timeframe.value, note: f.note.value.trim(), consent: f.consent.checked
+      } }).then(function (j) {
+        toast('Saved to Lofty'); state.rowsAt = 0;
+        if (j.leadId) setTimeout(function () { location.hash = '#lead=' + j.leadId; }, 1200); else form.reset();
+      }).catch(function (er) { err.textContent = errText(er); }).finally(function () { save.disabled = false; });
+    } } }, [
+      el('h2', { text: 'Add a lead' }),
+      el('div', { cls: 'grid2' }, [inp('firstName', 'First name *'), inp('lastName', 'Last name')]),
+      el('div', { cls: 'grid2' }, [inp('phone', 'Phone', { type: 'tel', inputmode: 'tel', placeholder: '(913) 555-1234' }), inp('email', 'Email', { type: 'email', inputmode: 'email' })]),
+      el('div', { cls: 'grid2' }, [
+        sel('type', 'Type', [['Buyer', 'Buyer'], ['Seller', 'Seller'], ['Investor', 'Investor'], ['Renter', 'Renter'], ['Homeowner', 'Homeowner'], ['Other', 'Other']]),
+        sel('group', 'Group', [['Active Buyer', 'Active Buyer'], ['Sphere', 'Sphere'], ['Cold', 'Cold']]),
+        sel('source', 'How you met', [['Referral', 'Referral'], ['Sphere', 'Sphere'], ['Open House', 'Open house'], ['Sign Call', 'Sign call'], ['Social Media', 'Social media'], ['Past Client', 'Past client'], ['Other', 'Other']]),
+        sel('timeframe', 'Timeframe', [['', 'Not sure'], ['0-1', 'Within a month'], ['1-3', '1–3 months'], ['3-6', '3–6 months'], ['6-12', '6–12 months'], ['12+', '12+ months'], ['Just Looking', 'Just looking']])
+      ]),
+      el('div', { cls: 'grid2' }, [inp('city', 'Area or city', { placeholder: 'Olathe' }), sel('state', 'State', [['KS', 'KS'], ['MO', 'MO']]),
+        inp('priceMin', 'Price from', { inputmode: 'numeric', placeholder: '$350,000' }), inp('priceMax', 'Price to', { inputmode: 'numeric', placeholder: '$450,000' })]),
+      (f.note = el('textarea', { id: 'a-note', placeholder: 'Anything to remember' }), el('label', { for: 'a-note' }, ['Notes', f.note])),
+      (f.consent = el('input', { type: 'checkbox', id: 'a-consent' }), el('label', { cls: 'check', for: 'a-consent' }, [f.consent, 'They’ve agreed to calls, texts and emails'])),
+      el('div', { cls: 'row2' }, [el('button', { cls: 'btn ghost', type: 'reset', text: 'Clear' }), save]), err
+    ]);
+    f.phone.addEventListener('input', function (e) {
+      var d = digits(e.target.value).slice(0, 10), o = d;
+      if (d.length > 6) o = '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6); else if (d.length > 3) o = '(' + d.slice(0, 3) + ') ' + d.slice(3); else if (d.length) o = '(' + d;
+      e.target.value = o;
+    });
+    moneyInput(f.priceMin); moneyInput(f.priceMax);
+    view.replaceChildren(form);
+  }
+
+  /* ============================ header buttons ============================ */
+  document.getElementById('refreshBtn').addEventListener('click', function () {
+    state.rowsAt = 0;
+    call('leads', { fresh: true }).then(function (j) { state.rows = j.rows; state.rowsAt = Date.now(); route(); toast('Up to date with Lofty'); }).catch(function (e) { toast(errText(e), true); });
+  });
+  document.getElementById('menuBtn').addEventListener('click', function () {
+    var who = state.me ? state.me.name + ' (' + state.me.email + ')' : '';
+    sheet('Account', [el('p', { cls: 'sub', text: who ? 'Signed in as ' + who : 'Signed in' })], function () {
+      return call('logout').catch(function () {}).then(function () { setTok(''); state.me = null; state.rows = null; location.hash = ''; route(); });
+    }, 'Sign out');
+  });
+
+  /* ============================ start ============================ */
+  // Keep the contact list fresh while the app is open.
+  setInterval(function () { if (tok() && !document.hidden && !openSheetEls) { loadRows(true).then(function () { if (location.hash === '#contacts') showContacts(); }).catch(function () {}); } }, 5 * 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && tok() && Date.now() - state.rowsAt > 3 * 60000) { state.rowsAt = 0; if (!openSheetEls) route(); } });
+  if (tok()) call('whoami').then(function (j) { state.me = j.me; }).catch(function () {});
+  route();
+})();
+</script>
+</body>
+</html>
