@@ -689,6 +689,15 @@ footer .legal img{width:44px;height:auto}
   document.addEventListener('click', function (e) { if (e.target && e.target.id === 'helpbtn') { setTimeout(function () { form.elements.name.focus({ preventScroll: true }); }, 500); } });
   var ERR = { need_name: 'Please add your name.', need_contact: 'Please add a phone number or email so we can reach you.', bad_email: 'That email doesn\u2019t look quite right.', bad_phone: 'Please add a full 10-digit phone number.', busy: 'Lots of requests right now. Please call Kia at (816) 853-3676.' };
   function say(t) { msg.textContent = t; msg.className = 'msg bad'; }
+  function fallback(data) {
+    var r = data.result, lines = ['Program finder (kiasellskc.com/programs)', 'I am a: ' + data.role];
+    if (r) { lines.push('Property: ' + r.address); if (r.matches && r.matches.length) lines.push('Looks like a fit: ' + r.matches.join(', ')); if (r.available && r.available.length) lines.push('Also available: ' + r.available.join(', ')); }
+    if (data.message) lines.push('', data.message);
+    var form2 = { name: data.name, phone: data.phone, email: data.email, interest: data.role === 'seller' ? 'sell' : 'buy', area: r && r.address ? (r.address.split(',')[1] || '').trim() : '', message: lines.join('\n'), consent: data.consent, website: data.website };
+    return fetch((window.KIA_CONFIG || {}).apiUrl, { method: 'POST', body: JSON.stringify({ action: 'contact', form: form2 }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' })
+      .then(function (x) { return x.json(); })
+      .then(function (x) { if (x && x.ok) { document.getElementById('lfBody').hidden = true; document.getElementById('lfThanks').hidden = false; return; } throw new Error((x && x.error) || 'failed'); });
+  }
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     var f = form.elements;
@@ -704,6 +713,7 @@ footer .legal img{width:44px;height:auto}
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (r && r.ok) { document.getElementById('lfBody').hidden = true; document.getElementById('lfThanks').hidden = false; try { if (window.gtag) gtag('event', 'finder_lead'); } catch (x) {} return; }
+        if (r && r.error === 'unknown_action') return fallback(data);
         throw new Error((r && r.error) || 'failed');
       })
       .catch(function (err) { say(ERR[err.message] || 'Something went wrong. Please call Kia at (816) 853-3676.'); btn.disabled = false; btn.textContent = 'Send to Kia & Jason'; });
