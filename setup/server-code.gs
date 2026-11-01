@@ -67,6 +67,7 @@ function handle(req) {
   if (a === 'acceptInvite') return acceptInvite(req.code, req.password);
   if (a === 'inviteInfo') return inviteInfo(req.code);
   if (a === 'contact') return websiteContact(req);
+  if (a === 'listings') return publicListings(!!req.fresh);
 
   var me = sessionUser(req.token);
   if (!me) return { ok: false, error: 'not_signed_in' };
@@ -426,6 +427,57 @@ function createLead(r) {
 }
 
 function patchRowLater(leadId) { try { patchRow(leadId); } catch (e) {} }
+
+/* ============================ website listings ============================ */
+
+var LISTINGS_CACHE_SECONDS = 3600;
+
+/** Public: Kia's own listings from Lofty (Heartland MLS). Active = full details; sold = photo, neighborhood, date only (no prices). */
+function publicListings(fresh) {
+  var cache = CacheService.getScriptCache();
+  if (!fresh) { var hit = cache.get('listings:v1'); if (hit) return JSON.parse(hit); }
+  var active = [], sold = [], next = '', soldNext = '';
+  for (var guard = 0; guard < 10; guard++) {
+    var q = '/v1.0/listing?agentListings=true&limit=100' + (next ? '&nextPageKey=' + encodeURIComponent(next) : '') +
+      (soldNext ? '&soldNextPageKey=' + encodeURIComponent(soldNext) : '');
+    var res = lofty('GET', q);
+    var a = res.listIng || res.listing || res.listings || [], s = res.soldListing || [];
+    if (guard === 0 || next) active = active.concat(a);
+    if (guard === 0 || soldNext) sold = sold.concat(s);
+    var meta = res._listingMetadata || res.get_listingMetadata || {};
+    var moreA = a.length === 100 && meta.nextPageKey, moreS = s.length === 100 && meta.soldNextPageKey;
+    next = moreA ? meta.nextPageKey : ''; soldNext = moreS ? meta.soldNextPageKey : '';
+    if (!next && !soldNext) break;
+  }
+  var num = function (x) { var n = Number(x); return isFinite(n) && n > 0 ? n : null; };
+  var title = function (s) { return String(s || '').toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, function (m) { return m.toUpperCase(); }).replace(/\b(Ne|Nw|Se|Sw|N|S|E|W)\b/g, function (m) { return m.toUpperCase(); }); };
+  var day = function (x) { if (!x) return null; if (typeof x === 'number') return Utilities.formatDate(new Date(x < 1e12 ? x * 1000 : x), TZ, 'yyyy-MM-dd'); return String(x).slice(0, 10); };
+  var out = {
+    ok: true,
+    asOf: new Date().toISOString(),
+    active: active.filter(function (L) { return /active|coming|pending|contingent/i.test(L.listingStatus || 'Active'); }).map(function (L) {
+      return {
+        id: String(L.listingId || ''), mls: String(L.mlsListingId || ''), status: L.listingStatus || 'Active',
+        street: title(L.listingStreetName || L.streetAddress), city: title(L.listingCity || L.city), state: L.listingState || 'KS',
+        zip: (L.listingZipcode && L.listingZipcode[0]) || '', price: num(L.price),
+        beds: num(L.beds || L.bedrooms), baths: num(L.baths || L.bathrooms), sqft: num(L.sqft),
+        neighborhood: title(L.subDivisionName), county: L.county || '', built: L.builtYear || null,
+        garage: num(L.garageParkingSpaces), type: L.propertyTypeSecondary || L.propertyTypePrimary || '',
+        description: clip(L.detailsDescribe || '', 3000), photos: (L.pictureList || []).slice(0, 25),
+        listed: day(L.mlsListDateL), brokerage: L.agentOrgName || 'LPT Realty LLC'
+      };
+    }),
+    sold: sold.map(function (L) {
+      return {
+        mls: String(L.mlsListingId || ''), neighborhood: title(L.subDivisionName),
+        city: title(L.listingCity || L.city) || (L.county ? L.county + ' County' : ''),
+        sold: day(L.soldDate), photo: (L.pictureList || [])[0] || '', brokerage: L.agentOrgName || 'LPT Realty LLC'
+      };
+    }).sort(function (a, b) { return String(b.sold).localeCompare(String(a.sold)); })
+  };
+  try { cache.put('listings:v1', JSON.stringify(out), LISTINGS_CACHE_SECONDS); } catch (e) {}
+  return out;
+}
 
 /* ============================ website contact form ============================ */
 

@@ -87,6 +87,50 @@ section{padding:96px 0}
 .areas{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
 .areas span{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 16px;font-size:14px;color:var(--muted)}
 
+/* listings */
+.listings{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.sub-h{font-family:var(--display);font-size:30px;margin:0 0 18px}
+.feature{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px;margin-bottom:56px}
+.lcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:18px;overflow:hidden;padding:0;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.lcard:hover{transform:translateY(-3px);box-shadow:0 24px 40px -28px rgba(38,21,17,.45)}
+.lcard:focus-visible{outline:2px solid var(--taupe);outline-offset:3px}
+.lcard .ph{position:relative;aspect-ratio:3/2;background:var(--blush-2)}
+.lcard .ph img{width:100%;height:100%;object-fit:cover}
+.badge{position:absolute;top:14px;left:14px;background:var(--espresso);color:var(--blush);font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+.badge.sold{background:var(--blush);color:var(--espresso)}
+.lcard .bd{padding:18px 20px 20px}
+.lcard .pr{font-family:var(--display);font-size:32px;line-height:1}
+.lcard .ad{margin:8px 0 2px;font-size:16px}
+.lcard .nb{color:var(--muted);font-size:14px}
+.lcard .facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:14px;color:var(--muted)}
+.lcard .facts b{color:var(--ink);font-weight:400}
+.courtesy{display:block;margin-top:12px;font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.soldgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.scard{background:var(--bg);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.scard .ph{position:relative;aspect-ratio:4/3;background:var(--blush-2)}
+.scard .ph img{width:100%;height:100%;object-fit:cover}
+.scard .badge{top:10px;left:10px;font-size:10px;padding:5px 10px}
+.scard .bd{padding:12px 14px 14px}
+.scard .nb{font-size:15px}
+.scard .dt{font-size:13px;color:var(--muted)}
+.more{margin-top:22px;text-align:center}
+.mlsnote{margin-top:30px;font-size:12px;color:var(--muted);line-height:1.5}
+dialog.ld{width:min(920px,calc(100vw - 24px));max-height:calc(100dvh - 24px);border:0;border-radius:20px;padding:0;background:var(--panel);color:var(--ink);box-shadow:0 40px 80px -30px rgba(0,0,0,.5)}
+dialog.ld::backdrop{background:rgba(38,21,17,.6)}
+.ld .gal{position:relative;background:#120a08;aspect-ratio:3/2;max-height:58vh;width:100%}
+.ld .gal img{width:100%;height:100%;object-fit:contain}
+.ld .nav{position:absolute;top:50%;display:grid;place-items:center;line-height:1;padding:0 0 3px;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(246,236,230,.9);color:var(--espresso);font-size:22px;cursor:pointer}
+.ld .nav.p{left:12px} .ld .nav.n{right:12px}
+.ld .cnt{position:absolute;bottom:12px;right:14px;background:rgba(38,21,17,.75);color:#fff;font-size:12px;padding:4px 10px;border-radius:999px}
+.ld .x{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(246,236,230,.92);font-size:20px;cursor:pointer;z-index:2}
+.ld .body{padding:26px 28px 30px}
+.ld .pr{font-family:var(--display);font-size:42px;line-height:1}
+.ld .ad{font-size:19px;margin:10px 0 2px}
+.ld .facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin:16px 0;color:var(--muted)}
+.ld .facts b{color:var(--ink);font-weight:400}
+.ld .desc{white-space:pre-line;color:var(--muted);margin:0 0 22px}
+.ld .acts{display:flex;flex-wrap:wrap;gap:10px}
+
 /* contact */
 .contact{background:linear-gradient(180deg,var(--bg),var(--blush))}
 .contact .wrap{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:56px;align-items:start}
@@ -158,6 +202,7 @@ footer a{text-decoration:none} footer a:hover{color:var(--blush)}
     <a class="mark" href="#top" aria-label="Kia Robinson, home">Kia Robinson</a>
     <nav aria-label="Main">
       <a href="#help">How I help</a>
+      <a href="#listings">Listings</a>
       <a href="#about">About</a>
       <a href="#contact">Contact</a>
     </nav>
@@ -215,6 +260,39 @@ footer a{text-decoration:none} footer a:hover{color:var(--blush)}
     </div>
   </section>
 
+  <section class="listings" id="listings" hidden>
+    <div class="wrap">
+      <div class="intro">
+        <p class="eyebrow">Listings</p>
+        <h2>Homes I'm proud to represent</h2>
+      </div>
+      <div id="activeWrap" hidden>
+        <h3 class="sub-h">For sale now</h3>
+        <div class="feature" id="activeList"></div>
+      </div>
+      <div id="soldWrap" hidden>
+        <h3 class="sub-h">Recently sold</h3>
+        <div class="soldgrid" id="soldList"></div>
+        <div class="more" id="soldMore" hidden><button class="btn ghost" type="button">Show more sold homes</button></div>
+      </div>
+      <p class="mlsnote">Listing information provided by Heartland MLS and deemed reliable but not guaranteed. Listings courtesy of LPT Realty LLC. Sold homes shown are ones Kia Robinson represented. <span id="asOf"></span></p>
+    </div>
+  </section>
+
+  <dialog class="ld" id="ld" aria-label="Listing details">
+    <button class="x" type="button" aria-label="Close" data-close>&times;</button>
+    <div class="gal"><img id="ldImg" alt=""><button class="nav p" type="button" aria-label="Previous photo" data-step="-1">&#8249;</button><button class="nav n" type="button" aria-label="Next photo" data-step="1">&#8250;</button><span class="cnt" id="ldCnt"></span></div>
+    <div class="body">
+      <div class="pr" id="ldPrice"></div>
+      <div class="ad" id="ldAddr"></div>
+      <div class="nb" id="ldNb" style="color:var(--muted)"></div>
+      <div class="facts" id="ldFacts"></div>
+      <p class="desc" id="ldDesc"></p>
+      <div class="acts"><a class="btn" href="#contact" id="ldAsk">Ask Kia about this home</a><a class="btn ghost" href="tel:+18168533676">Call (816) 853-3676</a></div>
+      <span class="courtesy" id="ldCourtesy"></span>
+    </div>
+  </dialog>
+
   <section class="about" id="about">
     <div class="wrap">
       <blockquote>Buying or selling a home is a big deal. My job is to make it feel like the easiest part of your move.</blockquote>
@@ -260,7 +338,7 @@ footer a{text-decoration:none} footer a:hover{color:var(--blush)}
             </div>
           </fieldset>
           <label>Area or neighborhood <span style="text-transform:none;letter-spacing:0">(optional)</span><input name="area" maxlength="60" placeholder="e.g. Olathe, Lee's Summit"></label>
-          <label>Message <span style="text-transform:none;letter-spacing:0">(optional)</span><textarea name="message" maxlength="2000" placeholder="Tell me a little about what you're looking for"></textarea></label>
+          <label>Message <span style="text-transform:none;letter-spacing:0">(optional)</span><textarea name="message" id="msgBox" maxlength="2000" placeholder="Tell me a little about what you're looking for"></textarea></label>
           <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
           <label class="consent"><input type="checkbox" name="consent" checked><span>It's OK for Kia Robinson to contact me by phone, text, or email about my real estate needs. Message and data rates may apply. I can opt out at any time.</span></label>
           <button class="btn" type="submit" id="send">Send</button>
@@ -336,6 +414,97 @@ footer a{text-decoration:none} footer a:hover{color:var(--blush)}
         btn.disabled = false; btn.textContent = 'Send';
       });
   });
+})();
+</script>
+<script>
+(function () {
+  var url = (window.KIA_CONFIG || {}).apiUrl;
+  if (!url || !window.fetch) return;
+  var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+  var money = function (n) { return n ? '$' + Number(n).toLocaleString('en-US') : ''; };
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var monthYr = function (d) { var m = /^(\d{4})-(\d{2})/.exec(d || ''); return m ? MONTHS[+m[2] - 1] + ' ' + m[1] : ''; };
+  var facts = function (L) {
+    var f = [];
+    if (L.beds) f.push('<span><b>' + L.beds + '</b> bd</span>');
+    if (L.baths) f.push('<span><b>' + L.baths + '</b> ba</span>');
+    if (L.sqft) f.push('<span><b>' + Number(L.sqft).toLocaleString('en-US') + '</b> sq ft</span>');
+    return f.join('');
+  };
+  var active = [], dlg = document.getElementById('ld'), cur = null, idx = 0;
+  function show(i) {
+    var ph = cur.photos || []; if (!ph.length) return;
+    idx = (i + ph.length) % ph.length;
+    document.getElementById('ldImg').src = ph[idx];
+    document.getElementById('ldImg').alt = 'Photo ' + (idx + 1) + ' of ' + cur.street;
+    document.getElementById('ldCnt').textContent = (idx + 1) + ' / ' + ph.length;
+  }
+  function open(L) {
+    cur = L;
+    document.getElementById('ldPrice').textContent = money(L.price);
+    document.getElementById('ldAddr').textContent = L.street + ', ' + L.city + ', ' + L.state + ' ' + L.zip;
+    document.getElementById('ldNb').textContent = [L.neighborhood, L.county ? L.county + ' County' : ''].filter(Boolean).join(' · ');
+    var f = facts(L);
+    if (L.garage) f += '<span><b>' + L.garage + '</b> car garage</span>';
+    if (L.built) f += '<span>Built <b>' + L.built + '</b></span>';
+    if (L.type) f += '<span>' + esc(L.type) + '</span>';
+    document.getElementById('ldFacts').innerHTML = f;
+    document.getElementById('ldDesc').textContent = L.description || '';
+    document.getElementById('ldCourtesy').textContent = 'Listing courtesy of ' + L.brokerage + ' · MLS #' + L.mls;
+    show(0);
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+  }
+  dlg.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t === dlg || t.hasAttribute('data-close')) dlg.close();
+    else if (t.hasAttribute('data-step')) show(idx + Number(t.getAttribute('data-step')));
+  });
+  dlg.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') show(idx - 1); if (e.key === 'ArrowRight') show(idx + 1); });
+  document.getElementById('ldAsk').addEventListener('click', function () {
+    dlg.close();
+    var box = document.getElementById('msgBox');
+    if (box && !box.value) box.value = "I'd like to learn more about " + cur.street + ', ' + cur.city + ' (MLS #' + cur.mls + ').';
+  });
+
+  fetch(url, { method: 'POST', body: JSON.stringify({ action: 'listings' }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' })
+    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      if (!r || !r.ok) return;
+      active = r.active || [];
+      var sold = (r.sold || []).filter(function (x) { return x.photo; });
+      if (!active.length && !sold.length) return;
+      if (active.length) {
+        document.getElementById('activeList').innerHTML = active.map(function (L, i) {
+          return '<button class="lcard" type="button" data-i="' + i + '"><div class="ph">' +
+            (L.photos[0] ? '<img src="' + esc(L.photos[0]) + '" alt="' + esc(L.street) + '" loading="lazy">' : '') +
+            '<span class="badge">' + esc(/active/i.test(L.status) ? 'For sale' : L.status) + '</span></div><div class="bd">' +
+            '<div class="pr">' + money(L.price) + '</div><div class="ad">' + esc(L.street) + ', ' + esc(L.city) + '</div>' +
+            '<div class="nb">' + esc(L.neighborhood) + '</div><div class="facts">' + facts(L) + '</div>' +
+            '<span class="courtesy">Listing courtesy of ' + esc(L.brokerage) + '</span></div></button>';
+        }).join('');
+        document.getElementById('activeList').addEventListener('click', function (e) {
+          var c = e.target.closest('.lcard'); if (c) open(active[+c.getAttribute('data-i')]);
+        });
+        document.getElementById('activeWrap').hidden = false;
+      }
+      if (sold.length) {
+        var shown = 8, list = document.getElementById('soldList'), more = document.getElementById('soldMore');
+        var render = function () {
+          list.innerHTML = sold.slice(0, shown).map(function (L) {
+            return '<div class="scard"><div class="ph"><img src="' + esc(L.photo) + '" alt="Home sold in ' + esc(L.neighborhood || L.city) + '" loading="lazy"><span class="badge sold">Sold</span></div>' +
+              '<div class="bd"><div class="nb">' + esc(L.neighborhood || L.city) + '</div><div class="dt">' +
+              esc([L.neighborhood ? L.city : '', 'Sold ' + monthYr(L.sold)].filter(Boolean).join(' · ')) + '</div></div></div>';
+          }).join('');
+          more.hidden = shown >= sold.length;
+        };
+        more.querySelector('button').addEventListener('click', function () { shown += 12; render(); });
+        render();
+        document.getElementById('soldWrap').hidden = false;
+      }
+      if (r.asOf) document.getElementById('asOf').textContent = 'Updated ' + new Date(r.asOf).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '.';
+      document.getElementById('listings').hidden = false;
+    })
+    .catch(function () {});
 })();
 </script>
 </body>
