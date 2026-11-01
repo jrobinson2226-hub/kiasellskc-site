@@ -1,0 +1,13 @@
+{
+  "name": "Kia's CRM",
+  "short_name": "Kia's CRM",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf5f2",
+  "theme_color": "#261511",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
