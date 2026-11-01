@@ -23,5 +23,6 @@ jobs:
             git config user.name "listings-bot"
             git config user.email "listings-bot@users.noreply.github.com"
             git commit -am "Refresh listings in page"
+            git pull --rebase origin main
             git push
           fi
