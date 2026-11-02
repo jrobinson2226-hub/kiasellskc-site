@@ -484,7 +484,7 @@ function publicListings(fresh) {
 
 var JASON_EMAIL = 'jason.robinson@phmloans.com';
 
-/** Public: the Program & Property Finder on kiasellskc.com/programs. Lead goes to Kia's Lofty; Kia and Jason both get the email. */
+/** Public: the Program & Property Finder on kiasellskc.com/programs. Lead goes to Kia's Lofty and Kia gets the email. */
 function finderLead(r) {
   var f = r.form || {};
   if (String(f.website || '').trim()) return { ok: true };
@@ -534,7 +534,7 @@ function finderLead(r) {
   var lines = ['Program finder lead: ' + name, '', 'I am a: ' + role];
   if (phone) lines.push('Phone: ' + fmtPhone(phone));
   if (email) lines.push('Email: ' + email);
-  lines.push('OK to contact (Kia & Jason): ' + (consent ? 'Yes' : 'Not checked'));
+  lines.push('OK to contact: ' + (consent ? 'Yes' : 'Not checked'));
   if (result) {
     lines.push('', 'Property checked: ' + result.address + (result.county ? ' (' + result.county + ')' : ''));
     var hh = [];
@@ -559,7 +559,7 @@ function finderLead(r) {
     var html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">' + lines.map(escapeHtml).join('<br>') +
       '<br><br><a href="' + link + '">Open in Kia\'s CRM</a></div>';
     var subj = 'Program finder lead: ' + name + (result ? ' (' + result.address.split(',')[0] + ')' : '');
-    var opts = { htmlBody: html, name: 'kiasellskc.com', cc: JASON_EMAIL };
+    var opts = { htmlBody: html, name: 'kiasellskc.com' };
     if (email) opts.replyTo = email;
     GmailApp.sendEmail(PEOPLE[0].email, subj, text, opts);
   } catch (e) { console.warn('notify: ' + e); }
