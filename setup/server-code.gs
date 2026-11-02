@@ -19,6 +19,7 @@ var PEOPLE = [
   { uid: 'jason', name: 'Jason Robinson', email: 'jrobinson2226@gmail.com', role: 'admin' }
 ];
 var GROUPS = ['Active Buyer', 'Sphere', 'Cold', 'Missing Info'];
+var ARCHIVED = 'Archived';   // Lofty tag. Archived contacts stay in Lofty but are hidden everywhere in the CRM.
 var SESSION_DAYS = 90;
 var LEADS_CACHE_SECONDS = 90;
 var LOFTY = 'https://api.lofty.com';
@@ -96,6 +97,7 @@ function handleInner(req) {
     case 'addFollowUp': return addFollowUp(req);
     case 'finishTask': return finishTask(req);
     case 'updateLead': return updateLead(req);
+    case 'archiveLead': return archiveLead(me, req);
     case 'createLead': return createLead(req);
     case 'invite': return invite(me, req);
     case 'scorecard': return { ok: true, card: scorecardData() };
@@ -155,6 +157,7 @@ function compactLead(L) {
     first: L.firstName || '',
     last: L.lastName || '',
     group: group,
+    archived: tagNames.indexOf(ARCHIVED) >= 0,
     tags: tagNames,
     source: L.source || '',
     area: L.city || loc.city || loc.zipCode || '',
@@ -234,7 +237,8 @@ function today() {
     currentId = page[page.length - 1].id;
   }
   var endOfToday = new Date(Utilities.formatDate(new Date(), TZ, "yyyy-MM-dd'T'23:59:59XXX")).getTime();
-  var open = tasks.filter(function (t) { return !t.finishFlag; }).map(slimTask);
+  var hidden = archivedIds();
+  var open = tasks.filter(function (t) { return !t.finishFlag; }).map(slimTask).filter(function (t) { return !hidden[t.leadId]; });
   var due = open.filter(function (t) { var w = Date.parse(t.when || ''); return !isNaN(w) && w <= endOfToday; });
   var upcoming = open.filter(function (t) { var w = Date.parse(t.when || ''); return !isNaN(w) && w > endOfToday; })
     .sort(function (a, b) { return Date.parse(a.when) - Date.parse(b.when); }).slice(0, 25);
@@ -408,6 +412,44 @@ function updateLead(r) {
   if (tagPart.tagsAdd) lofty('PUT', '/v1.0/leads/' + leadId, tagPart);
   patchRowLater(leadId);
   return { ok: true };
+}
+
+/* ================================ archive ================================ */
+
+/** Archive or restore a contact. Archiving tags it "Archived" in Lofty, finishes its open follow-ups,
+ *  and leaves a note. Nothing is deleted, so a restore brings everything back. */
+function archiveLead(me, r) {
+  var leadId = cleanId(r.leadId), on = r.archived !== false;
+  var L = lofty('GET', '/v1.0/leads/' + leadId).lead;
+  var tagNames = (L.tags || []).map(function (t) { return typeof t === 'string' ? t : t.tagName; }).filter(Boolean);
+  var group = GROUPS.filter(function (g) { return tagNames.indexOf(g) >= 0; })[0] || 'Cold';
+  var others = GROUPS.filter(function (g) { return g !== group; });
+  // Same shape as a group change (keeps the contact's group tag), plus or minus the Archived tag.
+  lofty('PUT', '/v1.0/leads/' + leadId, on
+    ? { tagsAdd: [group, ARCHIVED], tagsRemove: others }
+    : { tagsAdd: [group], tagsRemove: others.concat([ARCHIVED]) });
+  var closed = 0;
+  if (on) {
+    var open = [];
+    try { open = (lofty('GET', '/v2.0/tasks?leadId=' + leadId).tasks || []).filter(function (t) { return !t.finishFlag; }); }
+    catch (e) { console.warn('archive tasks: ' + e); }
+    open.forEach(function (t) { try { lofty('POST', '/v2.0/tasks/' + t.id + '/finish', {}); closed++; } catch (e) { console.warn('finish ' + t.id + ': ' + e); } });
+  }
+  try {
+    lofty('POST', '/v1.0/notes', { leadId: Number(leadId), isPin: false, content: on
+      ? 'Archived in Kia\'s CRM by ' + me.name + (closed ? '. Closed ' + closed + ' open follow-up' + (closed === 1 ? '' : 's') + '.' : '.')
+      : 'Restored from the archive in Kia\'s CRM by ' + me.name + '.' });
+  } catch (e) { console.warn('archive note: ' + e); }
+  var ids = archivedIds();
+  if (on) ids[leadId] = 1; else delete ids[leadId];
+  props().setProperty('archived', JSON.stringify(ids));
+  patchRowLater(leadId);
+  return { ok: true, archived: on, group: group, closed: closed };
+}
+
+/** Lead IDs archived from the CRM, kept here so Today can skip them without loading every contact. */
+function archivedIds() {
+  try { return JSON.parse(props().getProperty('archived') || '{}') || {}; } catch (e) { return {}; }
 }
 
 var LEAD_TYPES = { Buyer: 2, Seller: 1, Investor: 6, Renter: 5, Homeowner: 8, Other: -1 };
@@ -762,7 +804,8 @@ function countActivity(req) {
 function scorecardData() {
   var thisKey = weekKey(), lastKey = weekKey(new Date(Date.now() - 7 * 864e5));
   var cur = JSON.parse(props().getProperty(thisKey) || '{}'), prev = JSON.parse(props().getProperty(lastKey) || '{}');
-  var rows = leadRows(true);
+  var everyone = leadRows(true);
+  var rows = everyone.filter(function (r) { return !r.archived; });
   var newLeads = rows.filter(function (r) { return r.daysSinceCreated != null && r.daysSinceCreated < 7; });
   var src = function (r) {
     var t = r.tags || [];
@@ -777,6 +820,7 @@ function scorecardData() {
   newLeads.forEach(function (r) { var s = src(r); bySource[s] = (bySource[s] || 0) + 1; });
   var groups = {};
   rows.forEach(function (r) { groups[r.group] = (groups[r.group] || 0) + 1; });
+  if (everyone.length > rows.length) groups[ARCHIVED] = everyone.length - rows.length;
   var t = { due: [], upcoming: [] };
   try { t = today(); } catch (e) {}
   var nextWeekEnd = Date.now() + 7 * 864e5;
@@ -785,7 +829,7 @@ function scorecardData() {
     newNames: newLeads.slice(0, 15).map(function (r) { return { id: r.id, name: r.name || '(no name)', src: src(r) }; }),
     overdue: (t.due || []).filter(function (x) { return x.overdue; }).length, dueToday: (t.due || []).length,
     nextWeek: (t.upcoming || []).filter(function (x) { return Date.parse(x.when) <= nextWeekEnd; }).length,
-    groups: groups, total: rows.length
+    groups: groups, total: everyone.length
   };
 }
 
@@ -798,7 +842,7 @@ function weeklyScorecard() {
   var talked = n(c, 'call_Talked'), vm = n(c, 'call_VoiceMessage'), na = n(c, 'call_NoAnswer');
   var srcRows = Object.keys(d.bySource).sort(function (a, b) { return d.bySource[b] - d.bySource[a]; }).map(function (k) { return '<li>' + escapeHtml(k) + ': <b>' + d.bySource[k] + '</b></li>'; }).join('');
   var names = d.newNames.map(function (x) { return '<li><a href="' + APP_URL + '#lead=' + x.id + '" style="color:#261511">' + escapeHtml(x.name) + '</a> <span style="color:#6e5850">(' + escapeHtml(x.src) + ')</span></li>'; }).join('');
-  var grp = ['Active Buyer', 'Sphere', 'Cold', 'Missing Info', 'Ungrouped'].filter(function (g) { return d.groups[g]; }).map(function (g) { return g + ' ' + d.groups[g]; }).join(' · ');
+  var grp = ['Active Buyer', 'Sphere', 'Cold', 'Missing Info', 'Ungrouped', ARCHIVED].filter(function (g) { return d.groups[g]; }).map(function (g) { return g + ' ' + d.groups[g]; }).join(' · ');
   var weekOf = Utilities.formatDate(new Date(d.week + 'T12:00:00Z'), 'UTC', 'MMM d');
   var html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#261511;max-width:640px;line-height:1.5">' +
     '<div style="background:#f6ece6;padding:20px 22px;border-radius:14px"><div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#a7816d">Weekly scorecard</div>' +
