@@ -10,3 +10,4 @@
 ## Pages
 - [Home](https://kiasellskc.com/): About Kia, how she helps buyers and sellers, her current and recently sold listings, frequently asked questions and a contact form.
 - [Program & Property Finder](https://kiasellskc.com/programs/): Check a Kansas City address for USDA $0 down eligibility, Missouri (MHDC) down payment assistance, Chase Community Lending neighborhoods and other Kansas and Missouri home loan programs. Built with Kia's lender partner Jason Robinson, Sr. Loan Officer at Prosperity Home Mortgage (NMLS# 1008330).
+- [What's my home worth?](https://kiasellskc.com/home-value/): Request a free comparative market analysis from Kia for a Kansas City area home. Kia prepares it from recent nearby sales; it is not an automated estimate.

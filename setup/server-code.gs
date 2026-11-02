@@ -62,6 +62,13 @@ function doPost(e) {
 function out(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
 function handle(req) {
+  var res = handleInner(req);
+  try { if (res && res.ok && !res.skipStats) countActivity(req); } catch (e) { console.warn('stats: ' + e); }
+  if (res) delete res.skipStats;
+  return res;
+}
+
+function handleInner(req) {
   var a = req.action;
   if (a === 'login') return login(req.email, req.password);
   if (a === 'acceptInvite') return acceptInvite(req.code, req.password);
@@ -69,6 +76,9 @@ function handle(req) {
   if (a === 'contact') return websiteContact(req);
   if (a === 'listings') return publicListings(!!req.fresh);
   if (a === 'finderLead') return finderLead(req);
+  if (a === 'openHouseLead') return openHouseLead(req);
+  if (a === 'openHouseFinish') return openHouseFinish(req);
+  if (a === 'homeValueLead') return homeValueLead(req);
 
   var me = sessionUser(req.token);
   if (!me) return { ok: false, error: 'not_signed_in' };
@@ -88,6 +98,7 @@ function handle(req) {
     case 'updateLead': return updateLead(req);
     case 'createLead': return createLead(req);
     case 'invite': return invite(me, req);
+    case 'scorecard': return { ok: true, card: scorecardData() };
     default: return { ok: false, error: 'unknown_action' };
   }
 }
@@ -487,7 +498,7 @@ var JASON_EMAIL = 'jason.robinson@phmloans.com';
 /** Public: the Program & Property Finder on kiasellskc.com/programs. Lead goes to Kia's Lofty and Kia gets the email. */
 function finderLead(r) {
   var f = r.form || {};
-  if (String(f.website || '').trim()) return { ok: true };
+  if (String(f.website || '').trim()) return { ok: true, skipStats: true };
   var cache = CacheService.getScriptCache();
   var hour = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHH');
   var count = Number(cache.get('contact:' + hour) || 0);
@@ -502,7 +513,7 @@ function finderLead(r) {
   if (phone && phone.replace(/\D/g, '').length < 10) return { ok: false, error: 'bad_phone' };
   if (!email && !phone) return { ok: false, error: 'need_contact' };
   var dupKey = 'finderdup:' + (email || phone).toLowerCase();
-  if (cache.get(dupKey)) return { ok: true };
+  if (cache.get(dupKey)) return { ok: true, skipStats: true };
   cache.put(dupKey, '1', 600);
 
   var res0 = f.result || {};
@@ -566,6 +577,254 @@ function finderLead(r) {
   return { ok: true };
 }
 
+/* ============================ open house sign-in ============================ */
+
+/** Public: sign-in at an open house (kiasellskc.com/openhouse). Each visitor becomes a Lofty lead; Kia gets one list when she taps Finish. */
+function openHouseLead(r) {
+  var f = r.form || {};
+  if (String(f.website || '').trim()) return { ok: true, skipStats: true };
+  var house = clip(String(f.house || '').trim(), 120);
+  if (!house) return { ok: false, error: 'need_house' };
+  var cache = CacheService.getScriptCache();
+  var hour = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHH');
+  var count = Number(cache.get('oh:' + hour) || 0);
+  if (count >= 80) return { ok: false, error: 'busy' };
+  cache.put('oh:' + hour, String(count + 1), 3700);
+
+  var name = String(f.name || '').replace(/\s+/g, ' ').trim();
+  var email = String(f.email || '').trim();
+  var phone = String(f.phone || '').replace(/[^\d+]/g, '');
+  if (!name) return { ok: false, error: 'need_name' };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'bad_email' };
+  if (phone && phone.replace(/\D/g, '').length < 10) return { ok: false, error: 'bad_phone' };
+  if (!email && !phone) return { ok: false, error: 'need_contact' };
+
+  var hasAgent = f.agent === 'yes';
+  var timeline = { now: 'Ready now', '3': 'Within 3 months', '6': '3 to 6 months', later: '6+ months', looking: 'Just looking' }[f.timeline] || '';
+  var lender = { yes: 'Yes', no: 'No', cash: 'Paying cash' }[f.preapproved] || '';
+  var parts = name.split(' '), first = parts.shift(), last = parts.join(' ');
+  var consent = f.consent === true;
+  var street = house.split(',')[0];
+  var body = {
+    firstName: first.slice(0, 30), lastName: last.slice(0, 30), leadTypes: [f.sell === true ? 1 : 2],
+    source: 'Open house', tags: [hasAgent ? 'Sphere' : 'Active Buyer', 'Open House', ('OH ' + street).slice(0, 40)],
+    cannotCall: !consent, cannotText: !consent, cannotEmail: !consent
+  };
+  if (f.sell === true) body.tags.push('Seller Lead');
+  if (hasAgent) body.tags.push('Has Agent');
+  if (phone) body.phones = [phone.slice(0, 20)];
+  if (email) body.emails = [email];
+  var res = lofty('POST', '/v1.0/leads', body);
+  var leadId = res && res.leadId ? String(res.leadId) : null;
+  var lines = ['Open house sign-in: ' + house, 'Date: ' + Utilities.formatDate(new Date(), TZ, 'EEE MMM d, yyyy h:mm a')];
+  lines.push('Working with an agent: ' + (hasAgent ? 'Yes' + (f.agentName ? ' (' + clip(String(f.agentName), 60) + ')' : '') : 'No'));
+  if (timeline) lines.push('Timeline: ' + timeline);
+  if (lender) lines.push('Pre-approved: ' + lender);
+  if (f.sell === true) lines.push('Also needs to sell a home');
+  lines.push('OK to contact: ' + (consent ? 'Yes' : 'Not checked'));
+  var msg = clip(String(f.message || '').trim(), 1000);
+  if (msg) lines.push('', msg);
+  if (leadId) { try { lofty('POST', '/v1.0/notes', { leadId: Number(leadId), content: lines.join('\n'), isPin: false }); } catch (e) {} }
+  CacheService.getScriptCache().remove('rows:n');
+
+  // Keep today's list for this house so Kia can get one email at the end.
+  var key = 'ohlist:' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd') + ':' + street.toLowerCase().replace(/[^a-z0-9]/g, '');
+  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var list = JSON.parse(props().getProperty(key) || '[]');
+    list.push({ name: name, phone: phone, email: email, agent: hasAgent, agentName: f.agentName || '', timeline: timeline, lender: lender, sell: f.sell === true, leadId: leadId, at: new Date().toISOString() });
+    props().setProperty(key, JSON.stringify(list).slice(0, 8500));
+  } finally { lock.releaseLock(); }
+  return { ok: true };
+}
+
+/** Public: Kia taps Finish on the sign-in tablet; she gets today's list for that house by email. */
+function openHouseFinish(r) {
+  var house = clip(String(r.house || '').trim(), 120);
+  if (!house) return { ok: false, error: 'need_house' };
+  var street = house.split(',')[0];
+  var key = 'ohlist:' + Utilities.formatDate(new Date(), TZ, 'yyyyMMdd') + ':' + street.toLowerCase().replace(/[^a-z0-9]/g, '');
+  var list = JSON.parse(props().getProperty(key) || '[]');
+  var done = props().getProperty(key + ':sent');
+  if (done && Number(done) === list.length) return { ok: true, count: list.length, skipStats: true };
+  var rows = list.map(function (v, i) {
+    var link = v.leadId ? APP_URL + '#lead=' + v.leadId : APP_URL;
+    return '<tr style="border-top:1px solid #eadcd3"><td style="padding:8px 6px">' + (i + 1) + '</td><td style="padding:8px 6px"><a href="' + link + '" style="color:#261511"><b>' + escapeHtml(v.name) + '</b></a><br>' +
+      escapeHtml([v.phone ? fmtPhone(v.phone) : '', v.email].filter(Boolean).join(' · ')) + '</td><td style="padding:8px 6px">' +
+      escapeHtml([v.agent ? 'Has agent' + (v.agentName ? ': ' + v.agentName : '') : 'No agent', v.timeline, v.lender ? 'Pre-approved: ' + v.lender : '', v.sell ? 'Needs to sell' : ''].filter(Boolean).join(' · ')) + '</td></tr>';
+  }).join('');
+  var hot = list.filter(function (v) { return !v.agent; }).length;
+  var html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#261511;max-width:680px">' +
+    '<h2 style="font-family:Georgia,serif;font-weight:400;margin:0 0 4px">Open house: ' + escapeHtml(house) + '</h2>' +
+    '<p style="margin:0 0 14px;color:#6e5850">' + list.length + ' sign-in' + (list.length === 1 ? '' : 's') + ', ' + hot + ' without an agent. Everyone is in Lofty tagged "Open House" and "OH ' + escapeHtml(street) + '".</p>' +
+    (list.length ? '<table style="border-collapse:collapse;width:100%;font-size:13px">' + rows + '</table>' : '<p>No one signed in.</p>') +
+    '<p style="margin-top:16px"><a href="' + APP_URL + '" style="color:#261511">Open Kia\'s CRM</a></p></div>';
+  GmailApp.sendEmail(PEOPLE[0].email, 'Open house sign-ins: ' + street + ' (' + list.length + ')', 'Open house sign-ins for ' + house + ': ' + list.length, { htmlBody: html, name: "Kia's CRM" });
+  props().setProperty(key + ':sent', String(list.length));
+  return { ok: true, count: list.length, skipStats: true };
+}
+
+/* ============================ home value requests ============================ */
+
+/** Public: "What's my home worth?" (kiasellskc.com/home-value). Seller lead in Lofty + email to Kia. */
+function homeValueLead(r) {
+  var f = r.form || {};
+  if (String(f.website || '').trim()) return { ok: true, skipStats: true };
+  var cache = CacheService.getScriptCache();
+  var hour = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHH');
+  var count = Number(cache.get('contact:' + hour) || 0);
+  if (count >= 30) return { ok: false, error: 'busy' };
+  cache.put('contact:' + hour, String(count + 1), 3700);
+  var address = clip(String(f.address || '').replace(/\s+/g, ' ').trim(), 160);
+  var name = String(f.name || '').replace(/\s+/g, ' ').trim();
+  var email = String(f.email || '').trim();
+  var phone = String(f.phone || '').replace(/[^\d+]/g, '');
+  if (!address) return { ok: false, error: 'need_address' };
+  if (!name) return { ok: false, error: 'need_name' };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'bad_email' };
+  if (phone && phone.replace(/\D/g, '').length < 10) return { ok: false, error: 'bad_phone' };
+  if (!email && !phone) return { ok: false, error: 'need_contact' };
+  var dupKey = 'hvdup:' + (email || phone).toLowerCase();
+  if (cache.get(dupKey)) return { ok: true, skipStats: true };
+  cache.put(dupKey, '1', 600);
+
+  var timeline = { '3': 'Within 3 months', '6': '3 to 6 months', '12': '6 to 12 months', curious: 'Just curious' }[f.timeline] || '';
+  var why = { up: 'Moving up', down: 'Downsizing', relocate: 'Relocating', invest: 'Investment property', other: 'Other' }[f.reason] || '';
+  var parts = name.split(' '), first = parts.shift(), last = parts.join(' ');
+  var consent = f.consent === true;
+  var body = {
+    firstName: first.slice(0, 30), lastName: last.slice(0, 30), leadTypes: [1], source: 'kiasellskc.com home value',
+    tags: ['Active Buyer', 'Website Lead', 'Seller Lead', 'Home Value Request'],
+    cannotCall: !consent, cannotText: !consent, cannotEmail: !consent
+  };
+  if (phone) body.phones = [phone.slice(0, 20)];
+  if (email) body.emails = [email];
+  var city = address.split(',')[1];
+  if (city) body.inquiry = { locations: [{ city: city.trim(), stateCode: '' }] };
+  var res = lofty('POST', '/v1.0/leads', body);
+  var leadId = res && res.leadId ? String(res.leadId) : null;
+  var details = [];
+  if (f.beds) details.push(clip(String(f.beds), 4) + ' bed');
+  if (f.baths) details.push(clip(String(f.baths), 4) + ' bath');
+  if (f.sqft) details.push(clip(String(f.sqft), 8) + ' sq ft');
+  var lines = ['Home value request: ' + address];
+  if (details.length) lines.push('Home: ' + details.join(', '));
+  if (f.updates) lines.push('Updates: ' + clip(String(f.updates), 300));
+  if (timeline) lines.push('Thinking of selling: ' + timeline);
+  if (why) lines.push('Reason: ' + why);
+  if (f.buying === true) lines.push('Will also need to buy');
+  if (phone) lines.push('Phone: ' + fmtPhone(phone));
+  if (email) lines.push('Email: ' + email);
+  lines.push('OK to contact: ' + (consent ? 'Yes' : 'Not checked'));
+  var msg = clip(String(f.message || '').trim(), 1500);
+  if (msg) lines.push('', msg);
+  if (leadId) { try { lofty('POST', '/v1.0/notes', { leadId: Number(leadId), content: lines.join('\n'), isPin: true }); } catch (e) {} }
+  cache.remove('rows:n');
+  try {
+    var link = leadId ? APP_URL + '#lead=' + leadId : APP_URL;
+    var html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5"><b>' + escapeHtml(name) + '</b> wants to know what their home is worth.<br><br>' +
+      lines.map(escapeHtml).join('<br>') + '<br><br><a href="' + link + '">Open in Kia\'s CRM</a></div>';
+    var opts = { htmlBody: html, name: 'kiasellskc.com' };
+    if (email) opts.replyTo = email;
+    GmailApp.sendEmail(PEOPLE[0].email, 'Home value request: ' + address.split(',')[0] + ' (' + name + ')', name + '\n' + lines.join('\n') + '\n\n' + link, opts);
+  } catch (e) { console.warn('notify: ' + e); }
+  return { ok: true };
+}
+
+/* ============================ weekly scorecard ============================ */
+
+var STAT_ACTIONS = { logCall: 'calls', logText: 'texts', sendEmail: 'emails', addNote: 'notes', addFollowUp: 'followups', finishTask: 'done',
+  createLead: 'lead_crm', contact: 'lead_website', finderLead: 'lead_finder', openHouseLead: 'lead_openhouse', homeValueLead: 'lead_homevalue' };
+
+function weekKey(d) {
+  // Weeks run Saturday to Friday, so Friday's scorecard covers the full week.
+  d = d || new Date();
+  var ymd = Utilities.formatDate(d, TZ, 'yyyy-MM-dd').split('-').map(Number);
+  var u = Number(Utilities.formatDate(d, TZ, 'u')); // 1 = Monday ... 7 = Sunday
+  var back = (u % 7 + 1) % 7; // days since Saturday
+  var start = new Date(Date.UTC(ymd[0], ymd[1] - 1, ymd[2]) - back * 864e5);
+  return 'stats:' + start.toISOString().slice(0, 10);
+}
+
+function countActivity(req) {
+  var k = STAT_ACTIONS[req.action];
+  if (!k) return;
+  var lock = LockService.getScriptLock(); lock.waitLock(5000);
+  try {
+    var key = weekKey(), st = JSON.parse(props().getProperty(key) || '{}');
+    st[k] = (st[k] || 0) + 1;
+    if (req.action === 'logCall' && req.outcome) st['call_' + req.outcome] = (st['call_' + req.outcome] || 0) + 1;
+    if (/^(logCall|logText|sendEmail)$/.test(req.action) && req.followUp && req.followUp.when) st.followups = (st.followups || 0) + 1;
+    props().setProperty(key, JSON.stringify(st));
+  } finally { lock.releaseLock(); }
+}
+
+function scorecardData() {
+  var thisKey = weekKey(), lastKey = weekKey(new Date(Date.now() - 7 * 864e5));
+  var cur = JSON.parse(props().getProperty(thisKey) || '{}'), prev = JSON.parse(props().getProperty(lastKey) || '{}');
+  var rows = leadRows(true);
+  var newLeads = rows.filter(function (r) { return r.daysSinceCreated != null && r.daysSinceCreated < 7; });
+  var src = function (r) {
+    var t = r.tags || [];
+    if (t.indexOf('Open House') >= 0) return 'Open house';
+    if (t.indexOf('Program Finder') >= 0) return 'Program finder';
+    if (t.indexOf('Home Value Request') >= 0) return 'Home value page';
+    if (t.indexOf('Website Lead') >= 0) return 'Website contact form';
+    if (t.indexOf("Added in Kia's CRM") >= 0) return "Added in Kia's CRM";
+    return r.source || 'Other';
+  };
+  var bySource = {};
+  newLeads.forEach(function (r) { var s = src(r); bySource[s] = (bySource[s] || 0) + 1; });
+  var groups = {};
+  rows.forEach(function (r) { groups[r.group] = (groups[r.group] || 0) + 1; });
+  var t = { due: [], upcoming: [] };
+  try { t = today(); } catch (e) {}
+  var nextWeekEnd = Date.now() + 7 * 864e5;
+  return {
+    week: thisKey.slice(6), cur: cur, prev: prev, newLeads: newLeads.length, bySource: bySource,
+    newNames: newLeads.slice(0, 15).map(function (r) { return { id: r.id, name: r.name || '(no name)', src: src(r) }; }),
+    overdue: (t.due || []).filter(function (x) { return x.overdue; }).length, dueToday: (t.due || []).length,
+    nextWeek: (t.upcoming || []).filter(function (x) { return Date.parse(x.when) <= nextWeekEnd; }).length,
+    groups: groups, total: rows.length
+  };
+}
+
+function weeklyScorecard() {
+  var d = scorecardData(), c = d.cur, p = d.prev;
+  var n = function (o, k) { return o[k] || 0; };
+  var pl = function (x, w) { return x + ' ' + w + (x === 1 ? '' : 's'); };
+  var diff = function (k) { var a = n(c, k), b = n(p, k); if (!b && !a) return ''; var x = a - b; return '<span style="color:' + (x >= 0 ? '#2f7a4f' : '#a8332b') + ';font-size:12px">' + (x >= 0 ? '+' : '') + x + ' vs last week</span>'; };
+  var tile = function (label, k) { return '<td style="padding:12px;border:1px solid #eadcd3;border-radius:10px;text-align:center;width:25%"><div style="font-family:Georgia,serif;font-size:30px">' + n(c, k) + '</div><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6e5850">' + label + '</div>' + diff(k) + '</td>'; };
+  var talked = n(c, 'call_Talked'), vm = n(c, 'call_VoiceMessage'), na = n(c, 'call_NoAnswer');
+  var srcRows = Object.keys(d.bySource).sort(function (a, b) { return d.bySource[b] - d.bySource[a]; }).map(function (k) { return '<li>' + escapeHtml(k) + ': <b>' + d.bySource[k] + '</b></li>'; }).join('');
+  var names = d.newNames.map(function (x) { return '<li><a href="' + APP_URL + '#lead=' + x.id + '" style="color:#261511">' + escapeHtml(x.name) + '</a> <span style="color:#6e5850">(' + escapeHtml(x.src) + ')</span></li>'; }).join('');
+  var grp = ['Active Buyer', 'Sphere', 'Cold', 'Missing Info', 'Ungrouped'].filter(function (g) { return d.groups[g]; }).map(function (g) { return g + ' ' + d.groups[g]; }).join(' · ');
+  var weekOf = Utilities.formatDate(new Date(d.week + 'T12:00:00Z'), 'UTC', 'MMM d');
+  var html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#261511;max-width:640px;line-height:1.5">' +
+    '<div style="background:#f6ece6;padding:20px 22px;border-radius:14px"><div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#a7816d">Weekly scorecard</div>' +
+    '<div style="font-family:Georgia,serif;font-size:28px">Week of ' + weekOf + '</div></div>' +
+    '<h3 style="font-family:Georgia,serif;font-weight:400;margin:22px 0 8px">Your activity</h3>' +
+    '<table style="border-collapse:separate;border-spacing:8px;width:100%"><tr>' + tile('Calls', 'calls') + tile('Texts', 'texts') + tile('Emails', 'emails') + tile('Follow-ups done', 'done') + '</tr></table>' +
+    '<p style="margin:4px 0 0;color:#6e5850">Calls: ' + talked + ' talked, ' + vm + ' voicemail, ' + na + ' no answer. ' + pl(n(c, 'followups'), 'follow-up') + ' scheduled, ' + pl(n(c, 'notes'), 'note') + '.</p>' +
+    '<h3 style="font-family:Georgia,serif;font-weight:400;margin:22px 0 8px">New leads: ' + d.newLeads + '</h3>' +
+    (srcRows ? '<ul style="margin:0 0 8px;padding-left:20px">' + srcRows + '</ul>' : '<p style="margin:0">No new leads this week.</p>') +
+    (names ? '<ul style="margin:0;padding-left:20px;font-size:13px">' + names + '</ul>' : '') +
+    '<h3 style="font-family:Georgia,serif;font-weight:400;margin:22px 0 8px">Coming up</h3>' +
+    '<p style="margin:0">' + pl(d.nextWeek, 'follow-up') + ' due in the next 7 days' + (d.overdue ? ', <b style="color:#a8332b">' + d.overdue + ' overdue</b>' : ', nothing overdue') + '.</p>' +
+    '<p style="margin:14px 0 0;color:#6e5850;font-size:13px">' + d.total + ' contacts: ' + grp + '.</p>' +
+    '<p style="margin:22px 0 0"><a href="' + APP_URL + '" style="background:#261511;color:#f6ece6;padding:10px 18px;border-radius:999px;text-decoration:none">Open Kia\'s CRM</a></p>' +
+    '<p style="margin:18px 0 0;color:#a7816d;font-size:12px">Counts include calls, texts and emails logged in Kia\'s CRM. Activity entered directly in Lofty isn\'t counted.</p></div>';
+  GmailApp.sendEmail(PEOPLE[0].email, 'Your week: ' + pl(n(c, 'calls'), 'call') + ', ' + pl(n(c, 'texts'), 'text') + ', ' + pl(d.newLeads, 'new lead'), 'Weekly scorecard for the week of ' + weekOf + '. Open in an email app that shows HTML.', { htmlBody: html, name: "Kia's CRM" });
+}
+
+/** Run once from the editor: sends the scorecard every Friday around 4 PM Central. */
+function setupScorecard() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'weeklyScorecard') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('weeklyScorecard').timeBased().onWeekDay(ScriptApp.WeekDay.FRIDAY).atHour(16).inTimezone(TZ).create();
+  Logger.log('Scorecard scheduled for Fridays at 4 PM. Sending a sample now.');
+  weeklyScorecard();
+}
+
 /* ============================ website contact form ============================ */
 
 var INTEREST = { buy: 'Buying', sell: 'Selling', both: 'Buying and selling', exploring: 'Just exploring' };
@@ -573,7 +832,7 @@ var INTEREST = { buy: 'Buying', sell: 'Selling', both: 'Buying and selling', exp
 /** Public: the form on kiasellskc.com. No login. Creates a Lofty lead and emails Kia. */
 function websiteContact(r) {
   var f = r.form || {};
-  if (String(f.website || '').trim()) return { ok: true }; // honeypot: bots fill the hidden field
+  if (String(f.website || '').trim()) return { ok: true, skipStats: true }; // honeypot: bots fill the hidden field
   var cache = CacheService.getScriptCache();
   var hour = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHH');
   var count = Number(cache.get('contact:' + hour) || 0);
@@ -588,7 +847,7 @@ function websiteContact(r) {
   if (phone && phone.replace(/\D/g, '').length < 10) return { ok: false, error: 'bad_phone' };
   if (!email && !phone) return { ok: false, error: 'need_contact' };
   var dupKey = 'contactdup:' + (email || phone).toLowerCase();
-  if (cache.get(dupKey)) return { ok: true };
+  if (cache.get(dupKey)) return { ok: true, skipStats: true };
   cache.put(dupKey, '1', 600);
 
   var parts = name.split(' ');

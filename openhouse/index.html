@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Open House Sign-In | Kia Robinson</title>
+<meta name="description" content="Open house sign-in for Kia Robinson, LPT Realty.">
+<meta name="theme-color" content="#261511">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="../crm/icon-192.png">
+<link rel="apple-touch-icon" href="../crm/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Italiana&family=Questrial&display=swap">
+<style>
+:root{
+  --espresso:#261511; --ink:#261511; --muted:#6e5850; --blush:#f6ece6; --blush-2:#e7d1c2; --rose:#c4a695; --taupe:#a7816d;
+  --bg:#fbf7f4; --panel:#ffffff; --line:#eadcd3; --field:#fffdfb; --ok:#2f7a4f; --bad:#a8332b;
+  --display:"Italiana","Didot","Bodoni 72",Georgia,serif; --body:"Questrial",system-ui,-apple-system,"Segoe UI",sans-serif; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-text-size-adjust:100%}
+img{max-width:100%;display:block}
+a{color:inherit}
+[hidden]{display:none!important}
+.wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 max(20px,env(safe-area-inset-left,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.08;margin:0}
+.eyebrow{font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--taupe);margin:0 0 10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 26px;border-radius:999px;border:1px solid var(--espresso);background:var(--espresso);color:var(--blush);text-decoration:none;font:inherit;font-size:14px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.btn:hover{background:#3a221c}
+.btn.ghost{background:transparent;color:var(--espresso)}
+.btn:disabled{opacity:.6;cursor:default}
+.btn:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.pills span:focus-visible{outline:2px solid var(--taupe);outline-offset:3px}
+label.f{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
+label.f input,label.f select,label.f textarea{display:block;width:100%;margin-top:7px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--field);font:inherit;font-size:17px;color:var(--ink);letter-spacing:0;text-transform:none}
+label.f textarea{min-height:90px;resize:vertical}
+.opt{text-transform:none;letter-spacing:0}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+fieldset{border:0;padding:0;margin:0 0 18px}
+legend{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:0;margin-bottom:8px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pills label{position:relative}
+.pills input{position:absolute;opacity:0;width:1px;height:1px}
+.pills span{display:inline-block;padding:11px 18px;border:1px solid var(--line);border-radius:999px;background:var(--field);font-size:15px;cursor:pointer}
+.pills input:checked + span{background:var(--espresso);border-color:var(--espresso);color:var(--blush)}
+.pills input:focus-visible + span{outline:2px solid var(--taupe);outline-offset:2px}
+.check{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.5;color:var(--muted);margin:4px 0 16px;cursor:pointer}
+.check input{width:22px;height:22px;margin:1px 0 0;flex:none;accent-color:var(--espresso)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.msg{margin:12px 0 0;font-size:15px;min-height:1.4em;color:var(--bad)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:32px;box-shadow:0 30px 60px -40px rgba(38,21,17,.35)}
+@media (max-width:640px){.grid2,.grid3{grid-template-columns:minmax(0,1fr);gap:0}.card{padding:22px 18px}}
+
+body{min-height:100vh;background:linear-gradient(135deg,var(--blush),var(--blush-2))}
+.top{display:flex;align-items:center;gap:14px;padding:calc(env(safe-area-inset-top,0px) + 18px) 0 8px}
+.top img{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:50% 15%}
+.top b{font-family:var(--display);font-weight:400;font-size:26px;display:block;line-height:1}
+.top span{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+main{padding:18px 0 40px}
+.welcome{text-align:center;margin:10px 0 22px}
+.welcome h1{font-size:clamp(40px,6vw,64px)}
+.welcome p{margin:8px 0 0;color:var(--muted);font-size:18px}
+.kiosk{max-width:760px;margin:0 auto}
+.thanks{text-align:center;padding:40px 10px}
+.thanks h2{font-size:52px}
+.thanks p{color:var(--muted);font-size:18px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;max-width:760px;margin:18px auto 0;font-size:13px;color:var(--muted)}
+.foot button{background:none;border:0;font:inherit;color:var(--muted);text-decoration:underline;cursor:pointer;padding:8px}
+.setup{max-width:640px;margin:20px auto}
+.setup h1{font-size:44px;margin-bottom:8px}
+.setup p{color:var(--muted)}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:4px 0 14px}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
+.confirm{background:var(--blush);border-radius:14px;padding:14px;margin-top:12px;font-size:15px}
+.confirm .row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.confirm .btn{min-height:44px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><img src="../img/kia-photo.jpg" alt=""><div><b>Kia Robinson</b><span>Real Estate Agent · LPT Realty</span></div></div>
+  <main>
+    <!-- Setup: Kia picks the house -->
+    <section class="setup card" id="setup" hidden>
+      <p class="eyebrow">Open house</p>
+      <h1>Start your sign-in</h1>
+      <p>Pick the home you're showing. Then hand over the tablet or phone. Each visitor goes straight into Lofty tagged "Open House."</p>
+      <label class="f" id="pickWrap" hidden>Your listing<select id="pick"></select></label>
+      <div class="or" id="orLine" hidden>or type an address</div>
+      <label class="f">Address<input id="addr" placeholder="Street, city, state" autocomplete="off"></label>
+      <button class="btn" id="start" type="button" style="width:100%">Start sign-in</button>
+      <p class="msg" id="setupMsg"></p>
+    </section>
+
+    <!-- Kiosk -->
+    <section id="kiosk" hidden>
+      <div class="welcome"><p class="eyebrow">Welcome</p><h1>Thanks for stopping by!</h1><p id="houseLine"></p></div>
+      <div class="kiosk card">
+        <form id="f" novalidate>
+          <label class="f">Your name<input name="name" autocomplete="off" maxlength="80"></label>
+          <div class="grid2">
+            <label class="f">Phone<input name="phone" type="tel" inputmode="tel" autocomplete="off" maxlength="20"></label>
+            <label class="f">Email<input name="email" type="email" autocomplete="off" maxlength="120"></label>
+          </div>
+          <fieldset><legend>Are you working with a real estate agent?</legend>
+            <div class="pills"><label><input type="radio" name="agent" value="no" checked><span>No</span></label><label><input type="radio" name="agent" value="yes"><span>Yes</span></label></div>
+          </fieldset>
+          <label class="f" id="agentNameWrap" hidden>Agent's name <span class="opt">(optional)</span><input name="agentName" autocomplete="off" maxlength="60"></label>
+          <fieldset><legend>When are you hoping to move?</legend>
+            <div class="pills">
+              <label><input type="radio" name="timeline" value="now"><span>Ready now</span></label>
+              <label><input type="radio" name="timeline" value="3"><span>Within 3 months</span></label>
+              <label><input type="radio" name="timeline" value="6"><span>3–6 months</span></label>
+              <label><input type="radio" name="timeline" value="later"><span>6+ months</span></label>
+              <label><input type="radio" name="timeline" value="looking"><span>Just looking</span></label>
+            </div>
+          </fieldset>
+          <fieldset><legend>Pre-approved for a mortgage?</legend>
+            <div class="pills"><label><input type="radio" name="preapproved" value="yes"><span>Yes</span></label><label><input type="radio" name="preapproved" value="no"><span>Not yet</span></label><label><input type="radio" name="preapproved" value="cash"><span>Paying cash</span></label></div>
+          </fieldset>
+          <label class="check"><input type="checkbox" name="sell"><span>I'll also need to sell a home</span></label>
+          <div class="hp" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
+          <label class="check"><input type="checkbox" name="consent" checked><span>It's OK for Kia Robinson (LPT Realty) to contact me by phone, text or email about homes like this one. Message and data rates may apply. I can opt out at any time.</span></label>
+          <button class="btn" type="submit" id="send" style="width:100%">Sign in</button>
+          <p class="msg" id="msg" role="status" aria-live="polite"></p>
+        </form>
+        <div class="thanks" id="thanks" hidden><h2>Thank you!</h2><p>Enjoy the tour. Kia's happy to answer any questions.</p></div>
+      </div>
+      <div class="foot"><span id="count"></span><span><button type="button" id="changeBtn">Change house</button><button type="button" id="finishBtn">Finish open house</button></span></div>
+      <div class="kiosk confirm" id="confirm" hidden>
+        <b>Finish this open house?</b> Kia will get an email with everyone who signed in today.
+        <div class="row"><button class="btn" type="button" id="finishYes">Email me the list</button><button class="btn ghost" type="button" id="finishNo">Keep going</button></div>
+        <p class="msg" id="finishMsg" style="color:var(--ink)"></p>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="../config.js"></script>
+<script>
+(function () {
+  var api = (window.KIA_CONFIG || {}).apiUrl;
+  var $ = function (id) { return document.getElementById(id); };
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  var post = function (body) { return fetch(api, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, redirect: 'follow' }).then(function (r) { return r.json(); }); };
+  var today = new Date().toISOString().slice(0, 10);
+  var house = new URLSearchParams(location.search).get('house') || '';
+  var countKey = function () { return 'oh-count:' + today + ':' + house; };
+
+  function showSetup() {
+    $('kiosk').hidden = true; $('setup').hidden = false;
+    if (house) $('addr').value = house;
+    post({ action: 'listings' }).then(function (r) {
+      var a = (r && r.active) || [];
+      if (!a.length) return;
+      $('pick').innerHTML = '<option value="">Choose a listing</option>' + a.map(function (L) { var v = L.street + ', ' + L.city + ', ' + L.state + ' ' + L.zip; return '<option>' + v.replace(/</g, '&lt;') + '</option>'; }).join('');
+      $('pickWrap').hidden = false; $('orLine').hidden = false;
+    }).catch(function () {});
+  }
+  function showKiosk() {
+    $('setup').hidden = true; $('kiosk').hidden = false; $('confirm').hidden = true;
+    $('houseLine').textContent = house;
+    var n = Number(store.get(countKey()) || 0);
+    $('count').textContent = n ? n + ' signed in today' : '';
+    try { history.replaceState(null, '', '?house=' + encodeURIComponent(house)); } catch (e) {}
+  }
+  $('pick').addEventListener('change', function () { if (this.value) $('addr').value = this.value; });
+  $('start').addEventListener('click', function () {
+    var v = $('addr').value.trim();
+    if (!v) { $('setupMsg').textContent = 'Pick a listing or type the address.'; return; }
+    house = v; store.set('oh-house', v); showKiosk();
+  });
+  $('changeBtn').addEventListener('click', showSetup);
+  $('finishBtn').addEventListener('click', function () { $('confirm').hidden = false; $('finishMsg').textContent = ''; $('confirm').scrollIntoView({ behavior: 'smooth' }); });
+  $('finishNo').addEventListener('click', function () { $('confirm').hidden = true; });
+  $('finishYes').addEventListener('click', function () {
+    $('finishYes').disabled = true; $('finishMsg').textContent = 'Sending…';
+    post({ action: 'openHouseFinish', house: house }).then(function (r) {
+      $('finishYes').disabled = false;
+      $('finishMsg').textContent = r && r.ok ? 'Sent! ' + r.count + ' sign-in' + (r.count === 1 ? '' : 's') + ' emailed to Kia.' : 'That didn’t go through. Try again in a minute.';
+    }).catch(function () { $('finishYes').disabled = false; $('finishMsg').textContent = 'No connection. Try again in a minute.'; });
+  });
+
+  var form = $('f');
+  form.querySelectorAll('input[name=agent]').forEach(function (r) { r.addEventListener('change', function () { $('agentNameWrap').hidden = form.elements.agent.value !== 'yes'; }); });
+  var ERR = { need_name: 'Please add your name.', need_contact: 'Please add a phone number or email.', bad_email: 'Please check your email.', bad_phone: 'Please add a full 10-digit phone number.' };
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = form.elements;
+    var d = { house: house, name: f.name.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(), agent: f.agent.value, agentName: f.agentName.value.trim(),
+      timeline: f.timeline.value, preapproved: f.preapproved.value, sell: f.sell.checked, consent: f.consent.checked, website: f.website.value };
+    var say = function (t) { $('msg').textContent = t; };
+    if (!d.name) { say(ERR.need_name); f.name.focus(); return; }
+    if (!d.phone && !d.email) { say(ERR.need_contact); f.phone.focus(); return; }
+    if (d.phone && d.phone.replace(/\D/g, '').length < 10) { say(ERR.bad_phone); f.phone.focus(); return; }
+    if (d.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) { say(ERR.bad_email); f.email.focus(); return; }
+    $('send').disabled = true; $('send').textContent = 'Signing in…'; say('');
+    post({ action: 'openHouseLead', form: d }).then(function (r) {
+      if (!r || !r.ok) throw new Error((r && r.error) || 'failed');
+      var n = Number(store.get(countKey()) || 0) + 1; store.set(countKey(), String(n)); $('count').textContent = n + ' signed in today';
+      form.hidden = true; $('thanks').hidden = false;
+      setTimeout(function () {
+        form.reset(); $('agentNameWrap').hidden = true; form.hidden = false; $('thanks').hidden = true;
+        $('send').disabled = false; $('send').textContent = 'Sign in'; window.scrollTo(0, 0);
+      }, 4000);
+    }).catch(function (err) { say(ERR[err.message] || 'That didn’t go through. Please try again.'); $('send').disabled = false; $('send').textContent = 'Sign in'; });
+  });
+
+  if (house) showKiosk(); else { house = store.get('oh-house') || ''; showSetup(); }
+})();
+</script>
+</body>
+</html>
