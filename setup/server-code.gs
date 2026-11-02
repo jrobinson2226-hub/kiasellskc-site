@@ -393,7 +393,8 @@ function summarizeActivity(acts, saved) {
     }
     if (t === 'Favorite') { s.favs++; if (age <= 30) s.favs30++; }
     if (t === 'Request') s.showings.push({ at: at, addr: addr, date: realVal(a.scheduledDate) });
-    if (t === 'Search' && realVal(a.text) && s.searches.indexOf(a.text) < 0 && s.searches.length < 3) s.searches.push(String(a.text).slice(0, 80));
+    var q = t === 'Search' ? cleanSearch(a.text) : '';
+    if (q && s.searches.indexOf(q) < 0 && s.searches.length < 3) s.searches.push(q);
     if (t === 'Submission' && s.forms.length < 3) s.forms.push({ at: at, page: realVal(a.pageName) });
     if ((t === 'Browse' || t === 'Favorite' || t === 'Request') && addr) {
       if (area && age <= 90) areas[area] = (areas[area] || 0) + 1;
@@ -428,6 +429,14 @@ function listingArea(L) {
   if (city) return city;
   var m = String(L.streetAddress || '').match(/,\s*([^,]+),\s*[A-Z]{2}\b/);
   return m ? m[1].trim() : '';
+}
+
+/** "City: Olathe, KS; Purchase Type: For Sale; Sort by: Default" becomes "Olathe, KS". */
+function cleanSearch(text) {
+  return realVal(text).split(';').map(function (p) { return p.trim(); })
+    .filter(function (p) { return p && !/^sort by/i.test(p) && !/^purchase type:\s*for sale$/i.test(p); })
+    .map(function (p) { return p.replace(/^(city|zip ?code|neighborhood|county|keyword)s?:\s*/i, ''); })
+    .join(' · ').slice(0, 80);
 }
 
 /** Best-effort plain-English version of a saved search's criteria. */
