@@ -90,6 +90,7 @@ function handleInner(req) {
     case 'leads': return { ok: true, rows: leadRows(!!req.fresh), asOf: new Date().toISOString() };
     case 'today': return today();
     case 'lead': return leadDetail(req.leadId);
+    case 'insights': return { ok: true, insights: insightsFor(req.leadIds || []) };
     case 'logCall': return logCall(me, req);
     case 'logText': return logText(me, req);
     case 'sendEmail': return sendEmail(me, req);
@@ -175,7 +176,11 @@ function compactLead(L) {
     canCall: L.cannotCall === false,
     canText: L.cannotText === false,
     phone: (L.phones && L.phones[0]) || '',
-    email: (L.emails && L.emails[0]) || ''
+    email: (L.emails && L.emails[0]) || '',
+    tf: realVal(L.buyingTimeFrame) || realVal(L.sellingTimeFrame) || '',
+    preQual: yesNo(L.preQual),
+    fthb: yesNo(L.fthb),
+    houseToSell: yesNo(L.houseToSell)
   };
 }
 
@@ -264,6 +269,7 @@ function leadDetail(leadId) {
   row.emails = L.emails || [];
   row.leadTypes = L.leadTypes || [];
   row.timeframe = L.buyingTimeFrame || L.sellingTimeFrame || '';
+  row.profile = leadProfile(L);
   var timeline = [];
   try {
     var acts = lofty('GET', '/v2.0/leads/' + leadId + '/activities?limit=200&timeZoneCode=' + encodeURIComponent(TZ)).activities || [];
@@ -280,7 +286,162 @@ function leadDetail(leadId) {
   var tasks = [];
   try { tasks = (lofty('GET', '/v2.0/tasks?leadId=' + leadId).tasks || []).map(slimTask).filter(function (t) { return !t.done; }); }
   catch (e) { console.warn('tasks: ' + e); }
-  return { ok: true, lead: row, timeline: timeline.slice(0, 60), tasks: tasks };
+  var behavior = null;
+  try { behavior = insightsFor([leadId])[leadId] || null; } catch (e) { console.warn('insights: ' + e); }
+  return { ok: true, lead: row, timeline: timeline.slice(0, 60), tasks: tasks, behavior: behavior };
+}
+
+/** Lofty profile answers worth showing Kia, as [label, value] pairs. Blank and "N/A" answers are left out. */
+function leadProfile(L) {
+  var inq = L.leadInquiry || {}, out = [];
+  var add = function (label, v) { v = realVal(v); if (v) out.push([label, v]); };
+  add('Lofty stage', L.stage);
+  add('Buying timeframe', L.buyingTimeFrame);
+  add('Selling timeframe', L.sellingTimeFrame);
+  add('Pre-qualified', yesNo(L.preQual));
+  add('Mortgage', L.mortgage);
+  add('First-time buyer', yesNo(L.fthb));
+  add('Has a home to sell', yesNo(L.houseToSell));
+  add('Working with another agent', yesNo(L.withBuyerAgent));
+  var wants = [];
+  if (inq.bedroomsMin > 0) wants.push(inq.bedroomsMin + '+ beds');
+  if (inq.bathroomsMin > 0) wants.push(inq.bathroomsMin + '+ baths');
+  if (inq.propertyType && inq.propertyType.length) wants.push(inq.propertyType.join(', '));
+  add('Looking for', wants.join(' · '));
+  add('Lives at', [L.streetAddress, L.city, L.state].filter(function (x) { return realVal(x); }).join(', '));
+  add('Birthday', L.birthday);
+  add('Lofty segments', (L.segments || []).join(', '));
+  add('Referred by', L.referredBy);
+  return out;
+}
+
+function realVal(v) {
+  if (v == null || v === false) return '';
+  var s = String(v).trim();
+  return (!s || /^(n\/?a|null|unknown|-1)$/i.test(s)) ? '' : s;
+}
+
+function yesNo(v) {
+  if (v === true) return 'Yes';
+  if (v === false) return 'No';
+  var s = realVal(v);
+  if (/^(y|yes|true|1)$/i.test(s)) return 'Yes';
+  if (/^(n|no|false|0)$/i.test(s)) return 'No';
+  return s;
+}
+
+/* ======================= what they're looking at (site activity) ======================= */
+
+var INSIGHT_SECONDS = 3 * 3600;
+
+/** Site activity (homes viewed, saved, showing requests, searches) plus saved searches, for up to 25 contacts at once. */
+function insightsFor(ids) {
+  ids = (ids || []).map(function (x) { return String(x || '').replace(/\D/g, ''); }).filter(Boolean).slice(0, 25);
+  if (!ids.length) return {};
+  var cache = CacheService.getScriptCache(), out = {}, need = [];
+  var hits = cache.getAll(ids.map(function (id) { return 'ins:' + id; }));
+  ids.forEach(function (id) {
+    var h = hits['ins:' + id];
+    if (h) { try { out[id] = JSON.parse(h); return; } catch (e) {} }
+    need.push(id);
+  });
+  if (need.length) {
+    var paths = [];
+    need.forEach(function (id) { paths.push('/v1.0/leads/' + id + '/activities?curPage=0', '/v1.0/leads/' + id + '/savedSearches'); });
+    var res = loftyMany(paths), put = {};
+    need.forEach(function (id, i) {
+      var s = summarizeActivity(res[i * 2], res[i * 2 + 1]);
+      out[id] = s;
+      put['ins:' + id] = JSON.stringify(s);
+    });
+    try { cache.putAll(put, INSIGHT_SECONDS); } catch (e) {}
+  }
+  return out;
+}
+
+/** Parallel GETs to Lofty. Returns parsed JSON per path, or null for any that failed. */
+function loftyMany(paths) {
+  var key = apiKey(), scheme = props().getProperty('LOFTY_AUTH') || 'token';
+  var reqs = paths.map(function (p) {
+    return { url: LOFTY + p, method: 'get', muteHttpExceptions: true, headers: { Authorization: scheme + ' ' + key, 'X-Error-Status': 'true' } };
+  });
+  return UrlFetchApp.fetchAll(reqs).map(function (res, i) {
+    var code = res.getResponseCode();
+    if (code === 401) { try { return lofty('GET', paths[i]); } catch (e) { return null; } }
+    if (code >= 400) return null;
+    try { return JSON.parse(res.getContentText() || 'null'); } catch (e) { return null; }
+  });
+}
+
+function summarizeActivity(acts, saved) {
+  acts = Array.isArray(acts) ? acts : ((acts && (acts.activities || acts.data)) || []);
+  var now = Date.now(), DAY = 864e5;
+  var s = { views7: 0, views30: 0, homes: 0, favs: 0, favs30: 0, showings: [], searches: [], forms: [], last: null,
+    lastView: null, areas: [], beds: null, price: null, recent: [], saved: [] };
+  var homes = {}, areas = {}, beds = [], prices = [], seen = {};
+  acts.forEach(function (a) {
+    var t = a.type, at = Number(a.created) || 0, L = a.listing || {};
+    var age = at ? (now - at) / DAY : 1e9;
+    if (at && (!s.last || at > s.last)) s.last = at;
+    var addr = listingAddr(L);
+    var area = listingArea(L);
+    if (t === 'Browse') {
+      if (age <= 7) s.views7++;
+      if (age <= 30) s.views30++;
+      if (at && (!s.lastView || at > s.lastView)) s.lastView = at;
+      if (addr) homes[addr] = 1;
+    }
+    if (t === 'Favorite') { s.favs++; if (age <= 30) s.favs30++; }
+    if (t === 'Request') s.showings.push({ at: at, addr: addr, date: realVal(a.scheduledDate) });
+    if (t === 'Search' && realVal(a.text) && s.searches.indexOf(a.text) < 0 && s.searches.length < 3) s.searches.push(String(a.text).slice(0, 80));
+    if (t === 'Submission' && s.forms.length < 3) s.forms.push({ at: at, page: realVal(a.pageName) });
+    if ((t === 'Browse' || t === 'Favorite' || t === 'Request') && addr) {
+      if (area && age <= 90) areas[area] = (areas[area] || 0) + 1;
+      if (L.bedrooms > 0 && age <= 90) beds.push(L.bedrooms);
+      if (L.price > 0 && age <= 90) prices.push(L.price);
+      if (!seen[t + addr] && s.recent.length < 12) {
+        seen[t + addr] = 1;
+        s.recent.push({ type: t, addr: addr, beds: L.bedrooms > 0 ? L.bedrooms : null, baths: L.bathrooms > 0 ? L.bathrooms : null,
+          sqft: L.squareFeet > 0 ? L.squareFeet : null, price: L.price > 0 ? L.price : null,
+          link: a.link || L.siteListingUrl || '', pic: a.picture || L.pictureUrl || '', at: at });
+      }
+    }
+  });
+  s.homes = Object.keys(homes).length;
+  s.areas = Object.keys(areas).sort(function (a, b) { return areas[b] - areas[a]; }).slice(0, 3);
+  if (beds.length) s.beds = [Math.min.apply(null, beds), Math.max.apply(null, beds)];
+  if (prices.length) s.price = [Math.min.apply(null, prices), Math.max.apply(null, prices)];
+  var list = (saved && (saved.savedSearches || saved.data)) || [];
+  s.saved = list.slice(0, 5).map(function (x) { return { name: realVal(x.searchName || x.name || x.title), text: describeSearch(x) }; });
+  return s;
+}
+
+function listingAddr(L) {
+  var st = realVal(L.streetAddress);
+  if (!st) return '';
+  st = st.split(',')[0].trim();
+  return st.replace(/\b([A-Z]{2,})\b/g, function (w) { return /^(NW|NE|SW|SE|N|S|E|W)$/.test(w) ? w : w.charAt(0) + w.slice(1).toLowerCase(); });
+}
+
+function listingArea(L) {
+  var city = realVal(L.city);
+  if (city) return city;
+  var m = String(L.streetAddress || '').match(/,\s*([^,]+),\s*[A-Z]{2}\b/);
+  return m ? m[1].trim() : '';
+}
+
+/** Best-effort plain-English version of a saved search's criteria. */
+function describeSearch(x) {
+  var c = x.searchCondition || x.condition || x.criteria || x.filter || x;
+  var bits = [];
+  var loc = c.locations || c.location || c.cities || c.city || c.zipCodes || c.zipCode;
+  if (loc) bits.push(Array.isArray(loc) ? loc.map(function (l) { return typeof l === 'string' ? l : (l.city || l.zipCode || l.name || ''); }).filter(Boolean).slice(0, 3).join(', ') : String(loc));
+  var lo = Number(c.priceMin || c.minPrice || 0), hi = Number(c.priceMax || c.maxPrice || 0);
+  if (lo > 0 || hi > 0) bits.push((lo > 0 ? '$' + Math.round(lo / 1000) + 'K' : 'Up') + ' to ' + (hi > 0 ? '$' + Math.round(hi / 1000) + 'K' : 'any'));
+  var bd = Number(c.bedroomsMin || c.bedsMin || c.minBeds || c.bedrooms || 0); if (bd > 0) bits.push(bd + '+ beds');
+  var ba = Number(c.bathroomsMin || c.bathsMin || c.minBaths || 0); if (ba > 0) bits.push(ba + '+ baths');
+  var pt = c.propertyType || c.propertyTypes; if (pt && pt.length) bits.push(Array.isArray(pt) ? pt.join(', ') : String(pt));
+  return bits.filter(Boolean).join(' · ');
 }
 
 function cleanId(x) { var s = String(x || '').replace(/\D/g, ''); if (!s) throw new Error('bad_lead'); return s; }

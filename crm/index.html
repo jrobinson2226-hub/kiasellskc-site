@@ -112,6 +112,18 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
 .tpls button{border:1px dashed var(--line);background:transparent;border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer;text-align:left}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
 @media (prefers-reduced-motion:no-preference) and (min-width:700px){.sheet{animation:none}}
+.why{margin:4px 0 0;padding:0 0 0 16px;font-size:13px;color:var(--ink);white-space:normal;display:grid;gap:2px}
+.why li::marker{color:var(--taupe)}
+.homes{display:grid;gap:10px}
+.home{display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit}
+.home img,.home .ph{width:72px;height:54px;border-radius:8px;object-fit:cover;flex:none;background:var(--soft)}
+.home .main{flex:1;min-width:0;font-size:14px}
+.home .main b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home .main span{color:var(--muted);font-size:13px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.lede{margin:0;font-size:15px}
 </style>
 </head>
 <body>
@@ -244,7 +256,7 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
     if (state.rows && !fresh && Date.now() - state.rowsAt < 60000) return Promise.resolve(state.rows);
     return call('leads', { fresh: !!fresh }).then(function (j) { state.rows = j.rows; state.rowsAt = Date.now(); return j.rows; });
   }
-  function callList(rows) {
+  function callList(rows, n) {
     return rows.filter(function (r) { return !r.unsubscribed && r.canCall && r.phone && FAMILY.indexOf(r.name) < 0; })
       .map(function (r) {
         var portal = r.source !== 'CSV Import' && r.source !== 'Kia\'s CRM';
@@ -257,7 +269,62 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
         return { r: r, rank: rank, why: why };
       })
       .filter(function (x) { return x.r.daysSinceTouch == null || x.r.daysSinceTouch > 2; })
-      .sort(function (a, b) { return b.rank - a.rank; }).slice(0, 6);
+      .sort(function (a, b) { return b.rank - a.rank; }).slice(0, n || 6);
+  }
+
+  /* ---------- why a contact is worth a call, from their site activity and Lofty answers ---------- */
+  function shortDate(ms) { return ms ? new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''; }
+  function daysAgo(ms) { return ms ? Math.floor((Date.now() - ms) / 864e5) : null; }
+  function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
+
+  /** Extra points for recent site behavior, so active shoppers rise to the top. */
+  function behaviorRank(ins) {
+    if (!ins) return 0;
+    var pts = 0, recentShowing = (ins.showings || []).some(function (x) { return daysAgo(x.at) <= 30; });
+    if (recentShowing) pts += 6000;
+    pts += (ins.favs30 || 0) * 600 + (ins.views7 || 0) * 400 + (ins.views30 || 0) * 100;
+    if (ins.lastView && daysAgo(ins.lastView) <= 14) pts += 300;
+    return pts;
+  }
+
+  /** Headline reason, replacing the generic one when site activity says more. */
+  function behaviorWhy(ins, fallback) {
+    if (!ins) return fallback;
+    var sh = (ins.showings || []).filter(function (x) { return daysAgo(x.at) <= 30; })[0];
+    if (sh) return 'Asked for a showing ' + shortDate(sh.at);
+    if (ins.favs30) return 'Saved ' + plural(ins.favs30, 'home') + ' in the last 30 days';
+    if (ins.views7) return 'Looked at ' + plural(ins.views7, 'home') + ' this week';
+    if (ins.views30) return 'Looked at ' + plural(ins.views30, 'home') + ' this month';
+    return fallback;
+  }
+
+  /** Up to five short notes on what they're doing and what Lofty knows. */
+  function notesFor(r, ins) {
+    var out = [];
+    if (ins) {
+      (ins.showings || []).slice(0, 1).forEach(function (x) { out.push('Showing request' + (x.addr ? ': ' + x.addr : '') + ' (' + shortDate(x.at) + ')'); });
+      if (ins.favs) out.push('Saved ' + plural(ins.favs, 'home') + (ins.favs30 && ins.favs30 < ins.favs ? ', ' + ins.favs30 + ' recently' : ''));
+      if (ins.views30 && !/Looked at/.test(behaviorWhy(ins, ''))) out.push('Viewed ' + plural(ins.views30, 'home') + ' in the last 30 days');
+      else if (!ins.views30 && ins.lastView) out.push('Last looked at a home ' + shortDate(ins.lastView) + (ins.homes > 1 ? ' (' + ins.homes + ' homes viewed)' : ''));
+      var look = [];
+      if (ins.areas && ins.areas.length) look.push(ins.areas.join(', '));
+      if (ins.beds) look.push(ins.beds[0] === ins.beds[1] ? ins.beds[0] + ' bd' : ins.beds[0] + '–' + ins.beds[1] + ' bd');
+      if (ins.price) look.push(ins.price[0] === ins.price[1] ? money(ins.price[0]) : money(ins.price[0]) + '–' + money(ins.price[1]));
+      if (look.length) out.push('Browsing: ' + look.join(' · '));
+      var latest = (ins.recent || [])[0];
+      if (latest && out.length < 3) out.push('Latest: ' + latest.addr + (latest.beds ? ' (' + latest.beds + ' bd' + (latest.baths ? '/' + latest.baths + ' ba' : '') + ')' : ''));
+      (ins.saved || []).slice(0, 1).forEach(function (x) { if (x.text || x.name) out.push('Saved search: ' + (x.text || x.name)); });
+      (ins.searches || []).slice(0, 1).forEach(function (t) { out.push('Searched “' + t + '”'); });
+    }
+    var prof = [];
+    if (r.preQual === 'Yes') prof.push('pre-qualified');
+    if (r.fthb === 'Yes') prof.push('first-time buyer');
+    if (r.houseToSell === 'Yes') prof.push('has a home to sell');
+    if (r.tf) prof.push('timeframe ' + r.tf);
+    // Keep the top three activity notes, then what Lofty knows about them, then the rest.
+    var profLine = prof.length ? [prof.join(' · ').replace(/^./, function (c) { return c.toUpperCase(); })] : [];
+    var last = r.daysSinceTouch != null ? ['Last contact ' + (r.daysSinceTouch === 0 ? 'today' : plural(r.daysSinceTouch, 'day') + ' ago')] : [];
+    return out.slice(0, 3).concat(profLine, out.slice(3), last).slice(0, 5);
   }
 
   /* ============================ routing ============================ */
@@ -344,9 +411,23 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
       rows = rows.filter(function (r) { return !r.archived; });
       var fresh = rows.filter(function (r) { return r.daysSinceTouch == null && ((r.source !== 'CSV Import' && r.source !== 'Kia\'s CRM') || (r.daysSinceCreated != null && r.daysSinceCreated <= 7)); })
         .sort(function (a, b) { return (a.daysSinceCreated || 0) - (b.daysSinceCreated || 0); }).slice(0, 8);
-      newBox.replaceChildren.apply(newBox, fresh.length ? fresh.map(function (r) { return leadRow(r, (r.source || 'New') + ' · added ' + dayLabel(r.created).toLowerCase()); }) : [el('p', { cls: 'empty', text: 'No new leads waiting.' })]);
-      var cl = callList(rows);
-      callBox.replaceChildren.apply(callBox, cl.length ? cl.map(function (x) { return leadRow(x.r, x.why); }) : [el('p', { cls: 'empty', text: 'Nobody stands out today.' })]);
+      var newMeta = function (r) { return (r.source || 'New') + ' · added ' + dayLabel(r.created).toLowerCase(); };
+      var drawNew = function (ins) {
+        newBox.replaceChildren.apply(newBox, fresh.length ? fresh.map(function (r) { return leadRow(r, newMeta(r), ins ? notesFor(r, ins[r.id]).filter(function (n) { return !/^Last contact/.test(n); }) : null); }) : [el('p', { cls: 'empty', text: 'No new leads waiting.' })]);
+      };
+      // Pool: the usual ranking plus anyone on her site in the last 30 days, then re-rank with what they actually did.
+      var pool = callList(rows, 14), inPool = {};
+      pool.forEach(function (x) { inPool[x.r.id] = 1; });
+      callList(rows, 200).filter(function (x) { return !inPool[x.r.id] && x.r.daysSinceVisit != null && x.r.daysSinceVisit <= 30; })
+        .slice(0, Math.max(0, 25 - fresh.length - pool.length)).forEach(function (x) { pool.push(x); });
+      var drawCall = function (ins) {
+        var list = pool.map(function (x) { return { r: x.r, rank: x.rank + behaviorRank(ins && ins[x.r.id]), why: behaviorWhy(ins && ins[x.r.id], x.why) }; })
+          .sort(function (a, b) { return b.rank - a.rank; }).slice(0, 6);
+        callBox.replaceChildren.apply(callBox, list.length ? list.map(function (x) { return leadRow(x.r, x.why, notesFor(x.r, ins && ins[x.r.id])); }) : [el('p', { cls: 'empty', text: 'Nobody stands out today.' })]);
+      };
+      drawNew(null); drawCall(null);
+      var ids = fresh.map(function (r) { return r.id; }).concat(pool.map(function (x) { return x.r.id; }));
+      if (ids.length) call('insights', { leadIds: ids }).then(function (j) { drawNew(j.insights || {}); drawCall(j.insights || {}); }).catch(function () {});
     }).catch(function (e) { newBox.replaceChildren(el('p', { cls: 'err', text: errText(e) })); callBox.replaceChildren(); });
   }
 
@@ -373,9 +454,10 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
     return row;
   }
 
-  function leadRow(r, meta) {
+  function leadRow(r, meta, notes) {
     return el('a', { cls: 'row', href: '#lead=' + r.id }, [
-      el('div', { cls: 'main' }, [el('div', { cls: 'name', text: r.name || '(no name)' }), el('div', { cls: 'meta', text: meta || [r.area, priceRange(r)].filter(Boolean).join(' · ') })]),
+      el('div', { cls: 'main' }, [el('div', { cls: 'name', text: r.name || '(no name)' }), el('div', { cls: 'meta', text: meta || [r.area, priceRange(r)].filter(Boolean).join(' · ') }),
+        notes && notes.length ? el('ul', { cls: 'why' }, notes.map(function (n) { return el('li', { text: n }); })) : null]),
       el('div', { cls: 'side' }, [el('span', { cls: 'pill' + (r.archived ? '' : r.group === 'Active Buyer' ? ' ab' : ''), text: r.archived ? 'Archived' : r.group }), el('div', { style: 'margin-top:4px', text: dayLabel(r.lastTouch) })])
     ]);
   }
@@ -466,7 +548,7 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
     ]);
     var tasksBox = el('div', { cls: 'list' }, j.tasks.length ? j.tasks.map(taskRowInline) : [el('p', { cls: 'empty', text: 'No open follow-ups.' })]);
     var tl = el('div', { cls: 'tl' }, j.timeline.length ? j.timeline.map(tlItem) : [el('p', { cls: 'empty', text: 'No activity yet.' })]);
-    view.replaceChildren(
+    view.replaceChildren.apply(view, [
       back,
       el('div', { cls: 'detail-head' }, [
         el('p', { cls: 'nm', text: L.name || '(no name)' }),
@@ -474,6 +556,8 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
         el('p', { cls: 'sub', text: facts })
       ]),
       kv, acts,
+      lookingCard(j.behavior),
+      aboutCard(L.profile || []),
       el('section', { cls: 'card', id: 'open-follow-ups' }, [el('h2', { text: 'Open follow-ups' }), tasksBox]),
       el('section', { cls: 'card', id: 'history' }, [el('h2', { text: 'History' }), tl]),
       el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
@@ -482,7 +566,42 @@ label{display:grid;gap:5px;font-size:13px;color:var(--muted);min-width:0}
           ? el('button', { cls: 'btn ghost', type: 'button', text: 'Restore contact', on: { click: function () { setArchived(L, false).catch(function () {}); } } })
           : el('button', { cls: 'btn ghost', type: 'button', style: 'color:var(--bad)', text: 'Archive', on: { click: function () { openArchive(L, j.tasks.length); } } })
       ])
-    );
+    ].filter(Boolean));
+  }
+
+  function lookingCard(b) {
+    var has = b && (b.recent.length || b.saved.length || b.searches.length || b.showings.length);
+    var body = [];
+    if (!has) body.push(el('p', { cls: 'empty', text: 'No home-search activity on your site yet.' }));
+    else {
+      var bits = [];
+      if (b.showings.length) bits.push(plural(b.showings.length, 'showing request'));
+      if (b.favs) bits.push(plural(b.favs, 'saved home'));
+      if (b.homes) bits.push(plural(b.homes, 'home') + ' viewed');
+      var look = [];
+      if (b.areas.length) look.push('Mostly ' + b.areas.join(', '));
+      if (b.beds) look.push(b.beds[0] === b.beds[1] ? b.beds[0] + ' beds' : b.beds[0] + '–' + b.beds[1] + ' beds');
+      if (b.price) look.push(money(b.price[0]) + (b.price[1] !== b.price[0] ? '–' + money(b.price[1]) : ''));
+      body.push(el('p', { cls: 'lede', text: [bits.join(', '), look.join(' · ')].filter(Boolean).join('. ') + (b.last ? '. Last active ' + shortDate(b.last) + '.' : '.') }));
+      if (b.recent.length) body.push(el('div', { cls: 'homes' }, b.recent.slice(0, 6).map(function (h) {
+        var what = { Browse: 'Viewed', Favorite: 'Saved', Request: 'Showing request' }[h.type] || h.type;
+        var spec = [h.beds && h.beds + ' bd', h.baths && h.baths + ' ba', h.sqft && h.sqft.toLocaleString() + ' sq ft', h.price && money(h.price)].filter(Boolean).join(' · ');
+        return el(h.link ? 'a' : 'div', { cls: 'home', href: h.link || null, target: h.link ? '_blank' : null, rel: h.link ? 'noopener' : null }, [
+          h.pic ? el('img', { src: h.pic, alt: '', loading: 'lazy' }) : el('div', { cls: 'ph' }),
+          el('div', { cls: 'main' }, [el('b', { text: h.addr }), el('span', { text: [what + ' ' + shortDate(h.at), spec].filter(Boolean).join(' · ') })])
+        ]);
+      })));
+      if (b.saved.length) body.push(el('div', { cls: 'kv' }, b.saved.map(function (x) { return el('div', { text: 'Saved search: ' + ([x.name, x.text].filter(Boolean).join(' · ') || 'criteria not shown') }); })));
+      if (b.searches.length) body.push(el('div', { cls: 'kv' }, [el('div', { text: 'Searched: ' + b.searches.join(' · ') })]));
+    }
+    return el('section', { cls: 'card', id: 'looking-at' }, [el('h2', { text: 'What they’re looking at' })].concat(body));
+  }
+
+  function aboutCard(pairs) {
+    if (!pairs.length) return null;
+    var dl = el('dl', { cls: 'facts' });
+    pairs.forEach(function (p) { dl.append(el('dt', { text: p[0] }), el('dd', { text: p[1] })); });
+    return el('section', { cls: 'card', id: 'about' }, [el('h2', { text: 'About them' }), dl]);
   }
 
   function actBtn(icon, label, disabled, fn) { return el('button', { cls: 'act', type: 'button', disabled: disabled, on: { click: fn } }, [el('b', { 'aria-hidden': 'true', text: icon }), label]); }
