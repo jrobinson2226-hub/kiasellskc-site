@@ -38,11 +38,12 @@
    "@id": "https://kiasellskc.com/#kia",
    "name": "Kia Robinson",
    "jobTitle": "Real Estate Agent",
+  "homeLocation": {"@type": "City", "name": "Olathe, KS"},
    "url": "https://kiasellskc.com/",
    "telephone": "+1-816-853-3676",
    "email": "kiasellskc@gmail.com",
    "image": "https://kiasellskc.com/img/kia-photo.jpg",
-   "description": "Kia Robinson is a Kansas City real estate agent with LPT Realty, licensed in Kansas and Missouri, helping buyers and sellers across the Kansas City metro.",
+   "description": "Kia Robinson is a Kansas City real estate agent with LPT Realty, licensed in Kansas and Missouri. She started in homebuilding in 2005, coordinating the build process of over 500 homes at a time, worked in healthcare management from 2012, and has been a licensed agent since 2017. She lives in Olathe, Kansas, and helps buyers and sellers across the Kansas City metro.",
    "worksFor": {
     "@type": "RealEstateAgent",
     "name": "LPT Realty"
@@ -95,7 +96,9 @@
     "First-time home buyers",
     "Down payment assistance programs in Kansas and Missouri",
     "USDA eligible areas near Kansas City",
-    "Johnson County real estate"
+    "Johnson County real estate",
+  "New construction homes",
+  "Relocating to Kansas City"
    ],
    "hasCredential": [
     {
@@ -297,6 +300,10 @@ dialog.ld::backdrop{background:rgba(38,21,17,.6)}
 .ld .desc{white-space:pre-line;color:var(--muted);margin:0 0 22px}
 .ld .acts{display:flex;flex-wrap:wrap;gap:10px}
 
+.kfacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 18px;margin:34px 0 0;padding-top:26px;border-top:1px solid #4a332c}
+.kfacts dt{font-family:var(--display);font-size:38px;line-height:1;color:var(--blush)}
+.kfacts dd{margin:6px 0 0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--rose)}
+.about .wrap{align-items:start}
 /* programs callout + faq */
 .callout{background:var(--espresso);color:var(--blush);border-radius:24px;padding:44px;display:grid;grid-template-columns:minmax(0,1.3fr) auto;gap:28px;align-items:center}
 .callout h2{color:var(--blush)}
@@ -481,12 +488,22 @@ footer a{text-decoration:none} footer a:hover{color:var(--blush)}
 
   <section class="about" id="about">
     <div class="wrap">
-      <blockquote>Buying or selling a home is a big deal. My job is to make it feel like the easiest part of your move.</blockquote>
+      <div>
+        <blockquote>Let me be the one to help your family find your HOME today.</blockquote>
+        <dl class="kfacts">
+          <div><dt>2005</dt><dd>Started in homebuilding</dd></div>
+          <div><dt>500+</dt><dd>Homes coordinated at a time</dd></div>
+          <div><dt>2017</dt><dd>Licensed real estate agent</dd></div>
+          <div><dt>Olathe</dt><dd>Our forever hometown</dd></div>
+        </dl>
+      </div>
       <div>
         <p class="eyebrow">About Kia</p>
-        <h2>Local, responsive, and on your side</h2>
-        <p>I'm Kia Robinson, a real estate agent with LPT Realty, and Kansas City is home. I love helping families find the right place, whether that's a first home, more room to grow, or the next chapter.</p>
-        <p>You'll always know where things stand. I answer my phone, I explain each step in plain language, and I treat your move like it's my own.</p>
+        <h2>From building homes to helping you find HOME</h2>
+        <p>My professional career started in 2005 in homebuilding, which opened the door to my future passion for home sales. Coordinating the build process of over 500 homes at a time gave me deep, hands-on experience in the real estate world.</p>
+        <p>A key part of my heart for this work comes from my own family's experience walking through the market crash of 2008. It affected not just my job but our home, and our next steps were crucial. We moved across the country, rented for a couple of years, and eventually found not just our fixer-upper to buy but our forever hometown, Olathe, Kansas. Sometimes what feels like a tragedy can bring you such blessings.</p>
+        <p>In 2012 I moved from real estate to healthcare management. That move was pivotal, because it's where I found my natural strengths in communication, customer service and leadership. In 2017 I returned to real estate, earned my license and began serving families across the Kansas City metro.</p>
+        <p>Being a mom of three amazing, busy kids has taught me to multitask, stay organized and stay connected to the community where we've truly found our HOME. Let me be the one to help your family find yours.</p>
         <div class="ctas" style="margin-top:30px"><a class="btn ghost" style="border-color:var(--rose);color:var(--blush)" href="#contact">Start the conversation</a></div>
       </div>
     </div>
